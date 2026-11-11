@@ -17,6 +17,13 @@ import { emojis } from '../config/emojis';
 import { GlobalDashboardSection, GlobalOwnerDashboard } from '../dashboards/GlobalOwnerDashboard';
 import { ServerDashboardSection, ServerManagementDashboard } from '../dashboards/ServerManagementDashboard';
 import { ALL_FEATURE_KEYS, FeatureKey } from '../types/domain';
+import {
+  buildDiscoveryReportEmbed,
+  buildDiscoveryReview,
+  buildStaffDiscoveryPayload,
+  confirmStaffDiscovery,
+  listSelectableRoles,
+} from '../commands/staffDiscoveryUi';
 import { ActorGuildContext } from '../services/PermissionService';
 import { formatWarningLevelLabel } from '../services/WarningService';
 import { buildActorGuildContextFromDiscord, collectLiveGuildTelemetry } from '../utils/discordContext';
@@ -84,7 +91,7 @@ export async function routeDiscordInteraction(
       if (!cmd) {
         throw new Error(`Unknown slash command "/${interaction.commandName}".`);
       }
-      await cmd.execute(interaction, container);
+      await cmd.dispatch(interaction, container);
       return;
     }
 
@@ -126,6 +133,12 @@ async function handleButtonInteraction(
 ): Promise<void> {
   const id = interaction.customId;
   if (!id.startsWith('tsm:')) return;
+
+  // Staff role discovery selector (paged, multi-select, session-owned).
+  if (id.startsWith('tsm:sd:')) {
+    await handleStaffDiscoveryButton(interaction, container);
+    return;
+  }
 
   // 1. Persistent Review Workflow Buttons (tsm:rev:<action>:<reviewId>)
   if (id.startsWith('tsm:rev:')) {
@@ -445,11 +458,138 @@ async function handleButtonInteraction(
   }
 }
 
+async function resolveDiscoveryGuild(
+  interaction: ButtonInteraction | StringSelectMenuInteraction,
+  sessionGuildId: string,
+): Promise<Guild> {
+  if (!interaction.guildId || interaction.guildId !== sessionGuildId) {
+    throw new Error('Guild isolation check failed for this staff discovery session.');
+  }
+  if (interaction.guild) return interaction.guild;
+  const guild = await interaction.client.guilds.fetch(sessionGuildId);
+  if (!guild) throw new Error('The Discord server for this discovery session is unavailable.');
+  return guild;
+}
+
+async function authorizeDiscovery(
+  interaction: ButtonInteraction | StringSelectMenuInteraction,
+  container: PlatformContainer,
+  sessionGuildId: string,
+  sessionActorId: string,
+): Promise<Guild> {
+  const guild = await resolveDiscoveryGuild(interaction, sessionGuildId);
+  if (sessionActorId !== interaction.user.id) {
+    throw new Error('This role selector belongs to another moderator. Run `/staff add` to start your own selection.');
+  }
+  const ctx = await resolveActorContextForGuild(interaction as never, guild.id, container);
+  container.permissions.assertGuildCapability(ctx, 'canConfigureGuild', 'STAFF_DISCOVERY_SELECTOR');
+  return guild;
+}
+
+async function handleStaffDiscoveryButton(
+  interaction: ButtonInteraction,
+  container: PlatformContainer,
+): Promise<void> {
+  const [, , action, sessionId, extra] = interaction.customId.split(':');
+  const session = container.discoverySessions.get(sessionId);
+  if (!session) {
+    throw new Error('This staff role selector expired after 20 minutes. Run `/staff add` again to restart.');
+  }
+
+  if (action === 'cancel') {
+    await authorizeDiscovery(interaction, container, session.guildId, session.actorUserId);
+    container.discoverySessions.delete(sessionId);
+    await interaction.update({
+      embeds: [
+        createBrandEmbed({
+          title: 'Staff Discovery Cancelled',
+          tone: 'warning',
+          description: 'No staff roles were changed. Existing staff profiles and history were preserved.',
+        }),
+      ],
+      components: [],
+    });
+    return;
+  }
+
+  const guild = await authorizeDiscovery(interaction, container, session.guildId, session.actorUserId);
+
+  if (action === 'page') {
+    container.discoverySessions.setPage(sessionId, Number.parseInt(extra, 10) || 0);
+    const payload = buildStaffDiscoveryPayload(guild, session);
+    await interaction.update({ embeds: payload.embeds, components: payload.components as never });
+    return;
+  }
+
+  if (action === 'clear') {
+    container.discoverySessions.clear(sessionId);
+    const payload = buildStaffDiscoveryPayload(guild, session);
+    await interaction.update({ embeds: payload.embeds, components: payload.components as never });
+    return;
+  }
+
+  if (action === 'review') {
+    const payload = buildDiscoveryReview(guild, session);
+    await interaction.update({ embeds: payload.embeds, components: payload.components as never });
+    return;
+  }
+
+  if (action === 'confirm') {
+    await interaction.deferUpdate();
+    const report = await confirmStaffDiscovery(guild, session, container, interaction.user.id);
+    container.discoverySessions.delete(sessionId);
+    container.audit.log({
+      guildId: guild.id,
+      actorUserId: interaction.user.id,
+      actorTag: interaction.user.tag ?? interaction.user.username,
+      actionCategory: 'ROSTER',
+      actionType: 'STAFF_DISCOVERY_CONFIRMED',
+      metadata: {
+        selectedRoles: [...session.selected.keys()],
+        membersScanned: report.membersScanned,
+        staffDiscovered: report.staffDiscovered,
+        coverageLevel: report.coverageLevel,
+      },
+    });
+    await interaction.editReply({
+      embeds: [buildDiscoveryReportEmbed(guild.name, report)],
+      components: [],
+    });
+    return;
+  }
+
+  throw new Error(`Unknown staff discovery action "${action}".`);
+}
+
+async function handleStaffDiscoverySelect(
+  interaction: StringSelectMenuInteraction,
+  container: PlatformContainer,
+): Promise<void> {
+  const [, , , sessionId] = interaction.customId.split(':');
+  const session = container.discoverySessions.get(sessionId);
+  if (!session) {
+    throw new Error('This staff role selector expired after 20 minutes. Run `/staff add` again to restart.');
+  }
+  const guild = await authorizeDiscovery(interaction, container, session.guildId, session.actorUserId);
+  const roles = listSelectableRoles(guild);
+  const pageRoles = roles
+    .slice(session.page * 20, session.page * 20 + 20)
+    .map((r) => r.id);
+  container.discoverySessions.setPageSelection(sessionId, pageRoles, interaction.values);
+  const payload = buildStaffDiscoveryPayload(guild, session);
+  await interaction.update({ embeds: payload.embeds, components: payload.components as never });
+}
+
 async function handleSelectMenuInteraction(
   interaction: StringSelectMenuInteraction,
   container: PlatformContainer,
 ): Promise<void> {
   const id = interaction.customId;
+
+  if (id.startsWith('tsm:sd:sel:')) {
+    await handleStaffDiscoverySelect(interaction, container);
+    return;
+  }
 
   if (id === 'tsm:god:nav') {
     const selected = interaction.values[0] as GlobalDashboardSection;

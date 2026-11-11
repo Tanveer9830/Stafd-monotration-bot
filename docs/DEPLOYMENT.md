@@ -80,3 +80,92 @@ Run automated tests anytime with:
 ```bash
 npm test
 ```
+
+---
+
+## 4. Website dashboard in production
+
+The dashboard runs inside the same `dist/index.js` process. No second service is required.
+
+### Required environment
+
+```env
+WEB_ENABLED=true
+WEB_HOST=127.0.0.1     # or 0.0.0.0 if exposing directly
+WEB_PORT=3000
+WEB_BASE_URL=https://staff.example.com
+DISCORD_CLIENT_SECRET=...
+OAUTH2_REDIRECT_URI=https://staff.example.com/auth/callback
+COOKIE_SECURE=auto
+WEB_TRUST_PROXY=true   # only behind a trusted reverse proxy
+```
+
+Add `https://staff.example.com/auth/callback` to Discord Developer Portal → OAuth2 → Redirects.
+
+### Caddy
+
+```caddy
+staff.example.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+Caddy handles TLS certificates automatically. Keep the Node process bound to `127.0.0.1`.
+
+### Nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name staff.example.com;
+    # ssl_certificate / ssl_certificate_key ...
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location /api/events {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+    }
+}
+```
+
+### Firewall
+
+If you bind directly to `0.0.0.0`, open only the dashboard port (and never expose SQLite or the backup directory):
+
+```bash
+sudo ufw allow 3000/tcp   # example only; prefer a reverse proxy with TLS
+```
+
+### systemd
+
+The existing `deploy/tanveer-staff-monitor.service` starts the bot and dashboard together. After changing `WEB_*` variables:
+
+```bash
+sudo systemctl restart tanveer-staff-monitor
+sudo journalctl -u tanveer-staff-monitor -f
+```
+
+### Backups before upgrades
+
+```bash
+npm run backup
+npm run migrate
+npm run build
+sudo systemctl restart tanveer-staff-monitor
+```
+
+Migration 003 adds ticket transcript, claim timer, session and web-role tables. It is additive; existing guild/staff/ticket records are preserved. Always take a verified backup first.
+
+### Pterodactyl
+
+- Allocate an extra port for `WEB_PORT` and set `WEB_BASE_URL` to the public URL mapped to that allocation.
+- Reverse proxy TLS is strongly recommended; otherwise set `COOKIE_SECURE=false` only for trusted private networks.
+- The database must live on the server's persistent volume (not the container temp directory).

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
+import { openRawSqliteDriver, RawSqliteDriver, SqliteDriverName } from './sqliteDriver';
 import { logger } from '../utils/logger';
 
 /**
@@ -28,7 +28,8 @@ export interface IRelationalDatabase {
 export class SqliteDatabase implements IRelationalDatabase {
   public readonly driverName = 'sqlite' as const;
   public readonly dbPath: string;
-  public readonly raw: Database.Database;
+  public readonly raw: RawSqliteDriver;
+  public readonly driverNameUsed: SqliteDriverName;
   private closed = false;
 
   constructor(dbPath: string) {
@@ -38,7 +39,8 @@ export class SqliteDatabase implements IRelationalDatabase {
       fs.mkdirSync(parentDir, { recursive: true });
     }
 
-    this.raw = new Database(this.dbPath);
+    this.raw = openRawSqliteDriver(this.dbPath);
+    this.driverNameUsed = this.raw.constructor.name.includes('Better') ? 'better-sqlite3' : 'node:sqlite';
     this.raw.pragma('journal_mode = WAL');
     this.raw.pragma('foreign_keys = ON');
     this.raw.pragma('synchronous = NORMAL');

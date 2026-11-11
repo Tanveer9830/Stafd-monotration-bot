@@ -1,521 +1,258 @@
 # TANVEER STAFF MONITOR — Command Reference
 
-This document lists every registered slash command and subcommand in the TANVEER STAFF MONITOR bot, with descriptions, required permissions, options, implementation location, and status.
+**Brand:** TANVEER STAFF MONITOR
+**Creator:** ⚡ Made by Tanveer | Discord: tanveer5637
+**Permanent Global Owner:** `1131248987173814336` (immutable, exact ID match only)
+**Registered operations:** **exactly 100** across **18 slash-command roots**, enforced by `tests/08-command-registry.test.ts`.
 
-**Brand:** TANVEER STAFF MONITOR  
-**Creator:** MADE BY TANVEER | Discord: tanveer5637  
-**Permanent Global Owner ID:** `1131248987173814336`  
-**Footer:** ⚡ Made by Tanveer | Discord: tanveer5637  
-
----
-
-## Security Model (CRITICAL)
-
-Administrative and server-management commands are executable **ONLY** by:
-1. The actual Discord Server Owner (guild `ownerId`) of the current guild, AND/OR
-2. The Permanent Global Owner ID `1131248987173814336`
-
-**Explicitly excluded:** Co-Owners, Server Administrators, Management, Moderators, Helpers, Staff, ordinary members, members with Discord Administrator permission, members with similarly named roles.
-
-Authorization is verified via:
-- Exact User ID match against `1131248987173814336` (Global Owner)
-- Guild `ownerId` field synced from Discord gateway events (Server Owner)
-- Explicit `guild_permission_assignments` table (User ID / Role ID only, never role names)
-
-Permission is enforced on: every slash command, every button, every modal, every select menu, every dashboard action, and in backend service logic.
-
-Unauthorized attempts return a branded **ACCESS DENIED** embed and are recorded in audit logs.
+> There are no hidden aliases, extra roots, or undocumented operations. Running `npm test` verifies the 100-operation count, per-root distribution, handler presence, and valid Discord option lengths.
 
 ---
 
-## Command Index (23 roots)
+## Access model
 
-| # | Command | Required Permission | Implementation |
-|---|---------|---------------------|----------------|
-| 1 | `/owner` | Global Owner only | `src/commands/ownerCommand.ts` |
-| 2 | `/admin` | Global Owner only | `src/commands/adminCommand.ts` |
-| 3 | `/server` | Server Owner or Global Owner | `src/commands/serverCommand.ts` |
-| 4 | `/dashboard` | Server Owner or Global Owner | `src/commands/dashboardCommand.ts` |
-| 5 | `/staff` | Server Owner or authorized reviewer | `src/commands/staffCommand.ts` |
-| 6 | `/activity` | View reports or owner | `src/commands/activityCommand.ts` |
-| 7 | `/monitor` | Server Owner or Global Owner | `src/commands/monitorCommand.ts` |
-| 8 | `/scan` | Server Owner or Global Owner | `src/commands/scanCommand.ts` |
-| 9 | `/ticket` | Server Owner or authorized | `src/commands/ticketCommand.ts` |
-| 10 | `/integration` | Server Owner or Global Owner | `src/commands/integrationCommand.ts` |
-| 11 | `/review` | Authorized reviewer or owner | `src/commands/reviewCommand.ts` |
-| 12 | `/warning` | Authorized reviewer or owner | `src/commands/warningCommand.ts` |
-| 13 | `/appeal` | Staff (submit) / Reviewer (decide) | `src/commands/appealCommand.ts` |
-| 14 | `/leave` | Staff (submit) / Manager (approve) | `src/commands/leaveCommand.ts` |
-| 15 | `/analytics` | View reports or owner | `src/commands/analyticsCommand.ts` |
-| 16 | `/report` | View reports or owner | `src/commands/reportCommand.ts` |
-| 17 | `/settings` | Server Owner or Global Owner | `src/commands/settingsCommand.ts` |
-| 18 | `/security` | Server Owner or Global Owner | `src/commands/securityCommand.ts` |
-| 19 | `/logs` | View reports or owner | `src/commands/logsCommand.ts` |
-| 20 | `/backup` | Global Owner only | `src/commands/backupCommand.ts` |
-| 21 | `/system` | Server Owner or Global Owner | `src/commands/systemCommand.ts` |
-| 22 | `/notification` | Server Owner or Global Owner | `src/commands/notificationCommand.ts` |
-| 23 | `/help` | All users | `src/commands/helpCommand.ts` |
+| Actor | How it is verified | Default reach |
+|---|---|---|
+| **Global Owner** | Exact ID `1131248987173814336` (never username, nickname, role, guild ownership or Administrator permission) | Global + every server |
+| **Global Administrator** | Explicit `/owner admins add` appointment with `WEB_ROLE_ASSIGNMENTS` scopes | Only the explicitly granted platform scopes; **no** automatic cross-server data |
+| **Server Owner** | Live Discord `guild.ownerId`, with stored owner as documented fallback when the bot is offline | Own guild only |
+| **Server Co-Owner** | `SERVER_CO_OWNER` role assigned in Discord or the website Access & Roles panel | Explicit local scopes |
+| **Server Admin** | `SERVER_ADMIN` role / website assignment | Explicit local scopes |
+| **Viewer** | `SERVER_VIEWER` / `STAFF_VIEWER` website role | Read-only scopes granted |
+| **Staff** | Active `staff_profiles` row discovered from configured staff roles | Own staff record when granted `STAFF_SELF_VIEW` |
 
-**Registry:** `src/commands/index.ts` — `ALL_COMMANDS` array, `COMMAND_MAP`, `registerDiscordSlashCommands()`
+Every command resolves access server-side through `AuthzService`. A member with the Discord **Administrator** permission is not a Server Owner and gains nothing automatically. Unauthorized attempts are audited as `UNAUTHORIZED_ATTEMPT`.
+
+### Access by root
+
+| Root | Minimum access |
+|---|---|
+| `/owner` | Global Owner only (Global Administrator may use only explicitly permitted read operations where the handler checks scopes) |
+| `/admin`, `/server`, `/settings`, `/integration` | Verified Server Owner, Global Owner, or an explicitly scoped website role |
+| `/staff`, `/activity`, `/scan`, `/review`, `/warning`, `/appeal`, `/leave`, `/analytics`, `/report`, `/ticket` | Server Owner / scoped manager; staff self-service operations allow the acting staff member |
+| `/monitor`, `/system` | Local manage scope or Global Owner; `/system diagnostics` requires `GLOBAL_SYSTEM` |
+| `/help` | Any user; shows only commands relevant to the caller |
 
 ---
 
-## Detailed Command Reference
+## Operations
 
-### 1. `/owner` — Global Owner Management
-**File:** `src/commands/ownerCommand.ts`  
-**Permission:** Global Owner only (ID `1131248987173814336`)
+Each option marked `*` is required. Options are validated by Discord and again on the server.
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `panel` | Open Global Owner Command Center | none | ✅ Implemented |
-| `admin add` | Appoint a bot administrator | `user` (user), `scopes` (string), `notes` (string) | ✅ Implemented |
-| `admin remove` | Remove a bot administrator | `user` (user) | ✅ Implemented |
-| `admin list` | List all bot administrators | none | ✅ Implemented |
-| `guilds` | List all registered guilds | none | ✅ Implemented |
-| `guild-info` | View guild configuration | `guild_id` (string) | ✅ Implemented |
-| `features` | Toggle global feature | `feature` (string), `allowed` (boolean) | ✅ Implemented |
-| `global-stats` | View global statistics | `export` (string: png/csv/pdf) | ✅ Implemented |
-| `audit` | View global audit logs | none | ✅ Implemented |
 
----
+### /owner (10 operations)
 
-### 2. `/admin` — Bot Administrator Management
-**File:** `src/commands/adminCommand.ts`  
-**Permission:** Global Owner only
+| Operation | Description | Options |
+|---|---|---|
+| `/owner panel` | Open the Global Owner command center | — |
+| `/owner admins add` | Appoint a Global Administrator with explicit scopes (Global Owner only) | `user`*, `scopes`, `notes` |
+| `/owner admins remove` | Revoke a Global Administrator (Global Owner only) | `user`* |
+| `/owner admins list` | List appointed Global Administrators and their scopes | — |
+| `/owner guilds` | List every registered Discord server | — |
+| `/owner guild-info` | Inspect one registered server in detail | `guild_id`* |
+| `/owner global-stats` | View cross-server platform analytics | `export` |
+| `/owner audit` | Inspect platform and per-server audit logs | `guild_id`, `limit` |
+| `/owner features` | Inspect or change global feature restrictions | `feature`, `allowed` |
+| `/owner backup` | List or create verified database backups | `action`*, `label` |
 
-| Subcommand Group | Subcommand | Description | Options | Status |
-|-----------------|------------|-------------|---------|--------|
-| `admins` | `add` | Appoint a bot administrator | `user` (user), `scopes` (string), `notes` (string) | ✅ Implemented |
-| `admins` | `remove` | Remove a bot administrator | `user` (user) | ✅ Implemented |
-| `admins` | `list` | List all bot administrators | none | ✅ Implemented |
-| `scopes` | `view` | View admin scopes for a user | `user` (user) | ✅ Implemented |
-| `scopes` | `set` | Set admin scopes for a user | `user` (user), `scopes` (string) | ✅ Implemented |
+### /admin (5 operations)
 
----
+| Operation | Description | Options |
+|---|---|---|
+| `/admin add` | Assign SERVER_ADMIN website access to a member (server owner / Global Owner) | `user`*, `permissions`, `expires_days` |
+| `/admin remove` | Revoke a member’s Server Administrator access | `user`* |
+| `/admin list` | List server administrators, co-owners and viewers with scoped access | — |
+| `/admin permissions` | Show the access permission matrix and assignable scopes | — |
+| `/admin audit` | View local role and permission audit history | `limit` |
 
-### 3. `/server` — Server Management
-**File:** `src/commands/serverCommand.ts`  
-**Permission:** Server Owner or Global Owner
+### /server (5 operations)
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `info` | Inspect server configuration and ownership | none | ✅ Implemented |
-| `register` | Register this server with the bot | none | ✅ Implemented |
-| `owner` | View or transfer server ownership | `new_owner` (string, optional) | ✅ Implemented |
-| `leave` | Have the bot leave a server | `guild_id` (string) | ✅ Implemented |
-| `settings` | View all server settings | none | ✅ Implemented |
+| Operation | Description | Options |
+|---|---|---|
+| `/server setup` | Configure alert, log and fallback channels for this server | `alert_channel`, `log_channel`, `fallback_channel`, `support_channels` |
+| `/server info` | Show server configuration and ownership information | — |
+| `/server status` | Show live monitoring, ticket and scheduler status | — |
+| `/server features` | List or toggle server feature switches | `feature`, `enabled` |
+| `/server diagnostics` | Run ticket permissions, intent and database diagnostics | — |
 
----
+### /staff (14 operations)
 
-### 4. `/dashboard` — Interactive Dashboards
-**File:** `src/commands/dashboardCommand.ts`  
-**Permission:** Server Owner or Global Owner
+| Operation | Description | Options |
+|---|---|---|
+| `/staff setup` | Show staff monitoring setup status and next steps | — |
+| `/staff add` | Discover staff automatically from one or more Discord roles | `category` |
+| `/staff remove` | Remove a member from the monitored staff roster (history is preserved) | `user`* |
+| `/staff sync` | Synchronize the complete Discord member roster with configured staff roles | — |
+| `/staff scan` | Run a manual staff monitoring scan with configured thresholds | — |
+| `/staff list` | List monitored staff and their live monitoring status | `status` |
+| `/staff profile` | View a complete staff profile | `user`* |
+| `/staff activity` | View a staff member’s latest observable activity events | `user`*, `limit` |
+| `/staff history` | View a staff member’s role and monitoring history | `user`* |
+| `/staff roles add` | Register a staff role by ID (bypasses the interactive selector) | `role`*, `category`* |
+| `/staff roles remove` | Remove a configured staff role (profiles are preserved) | `role`* |
+| `/staff roles list` | List configured staff roles with role IDs and categories | — |
+| `/staff roles scan` | Audit configured staff roles against live Discord roles and members | — |
+| `/staff report` | Export a staff analytics report (PNG, CSV or PDF) | `format`*, `period` |
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| (root) | Open Server Management Dashboard or Global Owner Command Center | none | ✅ Implemented |
+### /activity (3 operations)
 
-**Dashboard implementations:**
-- `src/dashboards/GlobalOwnerDashboard.ts` — 12 sections, global view
-- `src/dashboards/ServerManagementDashboard.ts` — 15 sections, per-server view
+| Operation | Description | Options |
+|---|---|---|
+| `/activity overview` | Show live staff activity health and status distribution | — |
+| `/activity timeline` | Show the live activity timeline across staff or one member | `user`, `limit` |
+| `/activity response-times` | Show average response and resolution speeds across staff | — |
 
----
+### /ticket (18 operations)
 
-### 5. `/staff` — Staff Management
-**File:** `src/commands/staffCommand.ts`  
-**Permission:** Server Owner or authorized reviewer
+| Operation | Description | Options |
+|---|---|---|
+| `/ticket setup` | Configure a ticket category or channel for monitoring | `target`*, `adapter` |
+| `/ticket channels` | List, add or remove monitored ticket channels | `action`*, `channel`, `adapter` |
+| `/ticket categories` | List, add or remove monitored ticket categories | `action`*, `category`, `adapter` |
+| `/ticket search` | Search real tickets by ticket number, channel ID or ticket ID | `query`*, `limit` |
+| `/ticket view` | Open a ticket with captured conversation and event timeline | `ticket`* |
+| `/ticket status` | Show the live ticket queue status | — |
+| `/ticket claim` | Manually claim a ticket (cancels any pending automatic claim) | `ticket`* |
+| `/ticket unclaim` | Release a ticket assignment | `ticket`* |
+| `/ticket assign` | Assign a ticket to a staff member | `ticket`*, `staff`* |
+| `/ticket reassign` | Reassign a ticket from its current staff member to another | `ticket`*, `staff`* |
+| `/ticket staff` | Show ticket workload and speed for one staff member or the team | `user` |
+| `/ticket history` | Show recent ticket lifecycle events across the server | `limit` |
+| `/ticket timeline` | Show the chronological event timeline for one ticket | `ticket`* |
+| `/ticket stats` | Show server ticket statistics | — |
+| `/ticket response-times` | Show first-response time statistics per staff member | — |
+| `/ticket resolution-times` | Show resolution time statistics per staff member | — |
+| `/ticket reopen` | Reopen a resolved or closed ticket | `ticket`* |
+| `/ticket close` | Close a ticket | `ticket`*, `reason` |
 
-| Subcommand Group | Subcommand | Description | Options | Status |
-|-----------------|------------|-------------|---------|--------|
-| (root) | `setup` | Configure staff roles and monitoring | none | ✅ Implemented |
-| (root) | `scan` | Run full roster scan | none | ✅ Implemented |
-| (root) | `list` | List all staff members | none | ✅ Implemented |
-| (root) | `active` | List active staff | none | ✅ Implemented |
-| (root) | `inactive` | List inactive staff | none | ✅ Implemented |
-| (root) | `at-risk` | List at-risk staff | none | ✅ Implemented |
-| (root) | `unknown` | List unknown/unregistered staff | none | ✅ Implemented |
-| (root) | `profile` | View staff profile | `user` (user) | ✅ Implemented |
-| (root) | `activity` | View staff activity | `user` (user) | ✅ Implemented |
-| (root) | `history` | View staff history | `user` (user) | ✅ Implemented |
-| `roles` | `add` | Add staff role | `role` (role), `category` (string) | ✅ Implemented |
-| `roles` | `remove` | Remove staff role | `role` (role) | ✅ Implemented |
-| `roles` | `list` | List staff roles | none | ✅ Implemented |
-| (root) | `report` | Generate staff report | `period` (string), `format` (string) | ✅ Implemented |
-| (root) | `analytics` | View staff analytics | `period` (string) | ✅ Implemented |
-| (root) | `coverage` | View monitoring coverage | none | ✅ Implemented |
+### /monitor (5 operations)
 
----
+| Operation | Description | Options |
+|---|---|---|
+| `/monitor status` | Show monitoring pause state and scheduler health | — |
+| `/monitor start` | Start monitoring: enable scanning and initialize schedules | — |
+| `/monitor pause` | Pause monitoring for this server | — |
+| `/monitor resume` | Resume monitoring for this server | — |
+| `/monitor thresholds` | View or update inactivity thresholds (defaults 24h / 48h / 72h) | `at_risk_hours`, `inactive_hours`, `escalation_hours`, `scan_interval_minutes` |
 
-### 6. `/activity` — Staff Activity Tracking
-**File:** `src/commands/activityCommand.ts`  
-**Permission:** View reports or owner
+### /scan (4 operations)
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `list` | List recent qualifying activity events | `user` (user, optional), `limit` (integer) | ✅ Implemented |
-| `profile` | View activity profile for a staff member | `user` (user) | ✅ Implemented |
-| `stats` | View server-wide activity statistics | none | ✅ Implemented |
-| `export` | Export activity log (CSV) | none | ✅ Implemented |
+| Operation | Description | Options |
+|---|---|---|
+| `/scan now` | Run a complete monitoring scan now (roster + tickets + health) | — |
+| `/scan staff` | Rescan the staff roster and monitoring status | — |
+| `/scan tickets` | Scan ticket coverage, permissions and claim state | — |
+| `/scan history` | Show recorded scan history for this server | `limit` |
 
----
+### /review (5 operations)
 
-### 7. `/monitor` — Monitoring Controls
-**File:** `src/commands/monitorCommand.ts`  
-**Permission:** Server Owner or Global Owner
+| Operation | Description | Options |
+|---|---|---|
+| `/review pending` | List pending inactivity warning reviews | — |
+| `/review approve` | Approve a review (runs live safety rechecks before any warning) | `review_id`*, `reason`, `note` |
+| `/review reject` | Reject an inactivity review (no warning is issued) | `review_id`*, `note` |
+| `/review later` | Defer a review for later inspection | `review_id`*, `hours`, `note` |
+| `/review cancel` | Cancel an open review with a mandatory reason | `review_id`*, `reason`* |
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `status` | Show monitoring status | none | ✅ Implemented |
-| `enable` | Enable monitoring for this server | none | ✅ Implemented |
-| `disable` | Disable monitoring for this server | none | ✅ Implemented |
-| `config` | Configure monitoring settings | `key` (string), `value` (string) | ✅ Implemented |
+### /warning (4 operations)
 
----
+| Operation | Description | Options |
+|---|---|---|
+| `/warning issue` | Issue an authorized staff warning (delivered by DM when possible) | `user`*, `reason`*, `note`, `level` |
+| `/warning history` | View warning history for the server or one staff member | `user`, `limit` |
+| `/warning profile` | Show warning progression and appeal status for a staff member | `user`* |
+| `/warning remove` | Remove an active warning (mandatory audit reason) | `warning_id`*, `reason`* |
 
-### 8. `/scan` — Manual and Scheduled Scans
-**File:** `src/commands/scanCommand.ts`  
-**Permission:** Server Owner or Global Owner
+### /appeal (4 operations)
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `run` | Run a manual roster scan | `scope` (string: full/incremental) | ✅ Implemented |
-| `schedule` | Configure scan schedule | `interval_minutes` (integer) | ✅ Implemented |
-| `history` | View scan history | `limit` (integer) | ✅ Implemented |
-| `cancel` | Cancel a scheduled scan | `scan_id` (string) | ✅ Implemented |
+| Operation | Description | Options |
+|---|---|---|
+| `/appeal submit` | Submit an appeal for one of your own warnings | `warning_id`*, `reason`* |
+| `/appeal list` | List appeals by status | `status` |
+| `/appeal approve` | Approve an appeal and overturn the warning | `appeal_id`*, `note`* |
+| `/appeal reject` | Reject an appeal | `appeal_id`*, `note`* |
 
----
+### /leave (5 operations)
 
-### 9. `/ticket` — Ticket Management
-**File:** `src/commands/ticketCommand.ts`  
-**Permission:** Server Owner or authorized
+| Operation | Description | Options |
+|---|---|---|
+| `/leave request` | Request approved leave (leave pauses inactivity calculations) | `start_date`*, `end_date`*, `reason`*, `staff` |
+| `/leave approve` | Approve a pending leave request | `leave_id`*, `note` |
+| `/leave reject` | Reject a pending leave request | `leave_id`*, `reason`* |
+| `/leave active` | List currently active and upcoming approved leave | — |
+| `/leave history` | Show leave history for the server or one member | `user`, `limit` |
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `setup` | Configure ticket channel monitoring | `adapter` (string), `target` (channel) | ✅ Implemented |
-| `channels` | List ticket channels | `action` (string) | ✅ Implemented |
-| `categories` | List ticket categories | `action` (string) | ✅ Implemented |
-| `status` | View ticket monitoring status | none | ✅ Implemented |
-| `stats` | View ticket statistics | none | ✅ Implemented |
-| `staff` | View ticket staff assignments | none | ✅ Implemented |
-| `report` | Generate ticket report | `format` (string), `period` (string) | ✅ Implemented |
-| `diagnose` | Run ticket engine diagnostics | none | ✅ Implemented |
+### /analytics (5 operations)
 
-**Ticket adapters:** `src/tickets/adapters/` — GenericTicketAdapter, TicketToolAdapter, TicketsV2Adapter, CustomPatternTicketAdapter
+| Operation | Description | Options |
+|---|---|---|
+| `/analytics overview` | Show server analytics overview | `period` |
+| `/analytics staff` | Show fair staff performance analytics | `period` |
+| `/analytics tickets` | Show ticket volume, response and resolution analytics | — |
+| `/analytics workload` | Show workload distribution across active staff | — |
+| `/analytics trends` | Show daily monitoring and ticket trends | `days` |
 
----
+### /report (4 operations)
 
-### 10. `/integration` — Ticket Integrations
-**File:** `src/commands/integrationCommand.ts`  
-**Permission:** Server Owner or Global Owner
+| Operation | Description | Options |
+|---|---|---|
+| `/report daily` | Generate today’s analytics report | — |
+| `/report weekly` | Generate a weekly analytics report | — |
+| `/report custom` | Generate a report for a custom date range | `from`*, `to`* |
+| `/report export` | Export a branded report file | `format`*, `period` |
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `list` | List configured integrations | none | ✅ Implemented |
-| `add` | Add a ticket integration | `type` (string), `external_id` (string) | ✅ Implemented |
-| `remove` | Remove a ticket integration | `type` (string), `external_id` (string) | ✅ Implemented |
-| `test` | Test an integration connection | `type` (string) | ✅ Implemented |
+### /integration (3 operations)
 
-**Schema:** `integration_configs` table (migration 002)
+| Operation | Description | Options |
+|---|---|---|
+| `/integration list` | List configured ticket integrations and adapter capabilities | — |
+| `/integration setup` | Configure a per-server ticket integration record | `type`*, `name`, `config` |
+| `/integration test` | Test ticket integration observability and channel permissions | — |
 
----
+### /settings (3 operations)
 
-### 11. `/review` — Inactivity Warning Review
-**File:** `src/commands/reviewCommand.ts`  
-**Permission:** Authorized reviewer or owner
+| Operation | Description | Options |
+|---|---|---|
+| `/settings inactivity` | View or update inactivity thresholds | `at_risk_hours`, `inactive_hours`, `escalation_hours`, `observation_hours` |
+| `/settings alerts` | Configure alert, log and DM fallback channels | `alert_channel`, `log_channel`, `fallback_channel`, `feature`, `enabled` |
+| `/settings permissions` | View effective permissions and the access matrix | — |
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `pending` | List pending warning reviews | none | ✅ Implemented |
-| `history` | View review history | `limit` (integer) | ✅ Implemented |
-| `approve` | Approve a warning review | `review_id` (string), `reason` (string) | ✅ Implemented |
-| `reject` | Reject a warning review | `review_id` (string), `note` (string) | ✅ Implemented |
-| `later` | Defer a review | `review_id` (string), `hours` (integer) | ✅ Implemented |
-| `cancel` | Cancel a review | `review_id` (string), `reason` (string) | ✅ Implemented |
+### /system (2 operations)
 
----
+| Operation | Description | Options |
+|---|---|---|
+| `/system status` | Show platform or server health status | — |
+| `/system diagnostics` | Show deep system diagnostics (Global Owner / granted global scope) | — |
 
-### 12. `/warning` — Warning Management
-**File:** `src/commands/warningCommand.ts`  
-**Permission:** Authorized reviewer or owner
+### /help (1 operations)
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `history` | List warning history | `user` (user, optional), `limit` (integer) | ✅ Implemented |
-| `profile` | View warning profile for a staff member | `user` (user) | ✅ Implemented |
-| `issue` | Issue a warning | `user` (user), `reason` (string) | ✅ Implemented |
-| `remove` | Remove a warning | `warning_id` (string), `reason` (string) | ✅ Implemented |
-| `appeal` | Submit or view an appeal | `action` (string), `target_id` (string), `reason` (string) | ✅ Implemented |
-| `config` | Configure warning settings | `expiry_days` (integer), `approval_policy` (string) | ✅ Implemented |
-
----
-
-### 13. `/appeal` — Warning Appeals
-**File:** `src/commands/appealCommand.ts`  
-**Permission:** Staff (submit) / Reviewer (decide)
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `submit` | Submit a warning appeal | `warning_id` (string), `reason` (string) | ✅ Implemented |
-| `list` | List appeals | `status` (string, optional) | ✅ Implemented |
-| `decide` | Decide on an appeal | `appeal_id` (string), `decision` (string), `note` (string) | ✅ Implemented |
-| `history` | View appeal history | `user` (user, optional) | ✅ Implemented |
-
-**Schema:** `warning_appeals` table (migration 001)
+| Operation | Description | Options |
+|---|---|---|
+| `/help help` | Show the approved command reference and permissions | — |
 
 ---
 
-### 14. `/leave` — Staff Leave Management
-**File:** `src/commands/leaveCommand.ts`  
-**Permission:** Staff (submit) / Manager (approve)
+## Common option vocabulary
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `submit` | Submit a leave request | `staff` (user, optional), `start_date` (string), `end_date` (string), `reason` (string) | ✅ Implemented |
-| `active` | View active and pending leave | none | ✅ Implemented |
-| `history` | View historical leave records | none | ✅ Implemented |
-| `approve` | Approve a leave request | `leave_id` (string), `note` (string) | ✅ Implemented |
-| `reject` | Reject a leave request | `leave_id` (string), `note` (string) | ✅ Implemented |
-| `cancel` | Cancel a leave request | `leave_id` (string), `reason` (string) | ✅ Implemented |
+| Option | Meaning |
+|---|---|
+| `user` | Discord user mention/ID resolved by Discord |
+| `role` | Discord role mention/ID |
+| `channel` / `category` | Discord channel ID |
+| `staff` | Registered staff user ID |
+| `ticket` | Internal ticket ID or ticket number |
+| `reason` | Human-readable reason (stored in the audit log and ticket/warning record) |
+| `limit` | Result limit, clamped by the server |
+| `export` | Produce a CSV/PNG/PDF report attachment where the operation supports it |
 
----
+## Website equivalents
 
-### 15. `/analytics` — Performance Analytics
-**File:** `src/commands/analyticsCommand.ts`  
-**Permission:** View reports or owner
+The website (see `docs/WEBSITE_DASHBOARD.md`) exposes the same data through HTTP APIs with identical authorization checks. Website roles and scopes are documented in `docs/ACCESS_ROLES.md`. Bot commands and website actions share the same underlying services, so records created in one surface appear immediately in the other.
 
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `server` | Build server-wide analytics | `period` (string: DAILY/WEEKLY/MONTHLY/CUSTOM) | ✅ Implemented |
-| `staff` | Build staff-specific analytics | `user` (user), `period` (string) | ✅ Implemented |
-| `period` | View period comparison | `from_date` (string), `to_date` (string) | ✅ Implemented |
-| `export` | Export analytics report | `period` (string), `format` (string: png/csv/pdf) | ✅ Implemented |
+## Verification commands
 
-**Service:** `src/services/AnalyticsService.ts`  
-**Exporter:** `src/services/ReportExportService.ts` (PNG, CSV, PDF)
-
----
-
-### 16. `/report` — Report Generation
-**File:** `src/commands/reportCommand.ts`  
-**Permission:** View reports or owner
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `generate` | Generate a branded performance report | `period` (string), `format` (string), `from_date` (string), `to_date` (string) | ✅ Implemented |
-| `schedule` | View scheduled reports | none | ✅ Implemented |
-| `list` | List report generation history | none | ✅ Implemented |
-
-**Schema:** `report_schedules` table (migration 002)
-
----
-
-### 17. `/settings` — Server Configuration
-**File:** `src/commands/settingsCommand.ts`  
-**Permission:** Server Owner or Global Owner
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `inactivity` | Configure inactivity thresholds | `at_risk_hours`, `inactive_hours`, `escalation_hours`, `baseline_hours`, `scan_interval_minutes` (integers) | ✅ Implemented |
-| `features` | Toggle local feature switches | `feature` (string), `enabled` (boolean) | ✅ Implemented |
-| `alerts` | Configure alert/audit channels | `alert_channel` (channel), `log_channel` (channel), `fallback_review_channel` (channel) | ✅ Implemented |
-| `permissions` | Configure reviewer permissions | `action` (string: add/remove/list) | ✅ Implemented |
-| `leave` | Configure leave settings | `action` (string), dates, reason | ✅ Implemented |
-| `logs` | View audit logs | `limit` (integer) | ✅ Implemented |
-
----
-
-### 18. `/security` — Security and Permissions
-**File:** `src/commands/securityCommand.ts`  
-**Permission:** Server Owner or Global Owner (Global Owner only for `policy` and `features`)
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `policy` | View global security & approval policies | none | ✅ Implemented |
-| `permissions` | View guild permission assignments | none | ✅ Implemented |
-| `audit` | View security-related audit entries | none | ✅ Implemented |
-| `features` | View global feature restrictions | none | ✅ Implemented |
-
----
-
-### 19. `/logs` — Audit Logs
-**File:** `src/commands/logsCommand.ts`  
-**Permission:** View reports or owner (Global Owner only for `global`)
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `view` | View guild-isolated audit entries | `limit` (integer) | ✅ Implemented |
-| `search` | Search audit logs by action type | `action_type` (string), `limit` (integer) | ✅ Implemented |
-| `global` | View global audit logs | `limit` (integer) | ✅ Implemented |
-
-**Service:** `src/services/AuditService.ts`
-
----
-
-### 20. `/backup` — Database Backup and Recovery
-**File:** `src/commands/backupCommand.ts`  
-**Permission:** Global Owner only
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `create` | Create an atomic database backup | none | ✅ Implemented |
-| `list` | List available backups | none | ✅ Implemented |
-| `restore` | Restore database from backup | `filename` (string) | ✅ Implemented |
-| `verify` | Verify backup integrity | `filename` (string) | ✅ Implemented |
-
-**Service:** `src/database/backup.ts` (DatabaseBackupService)  
-**Schema:** `backup_records` table (migration 002)
-
----
-
-### 21. `/system` — Bot Health and Diagnostics
-**File:** `src/commands/systemCommand.ts`  
-**Permission:** Server Owner or Global Owner (`info`: Global Owner only)
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `health` | View overall system health | none | ✅ Implemented |
-| `diagnostics` | View ticket engine diagnostics | none | ✅ Implemented |
-| `info` | View bot system information | none | ✅ Implemented |
-| `scheduler` | View scheduler status and pending tasks | none | ✅ Implemented |
-
-**Service:** `src/services/SchedulerService.ts`, `src/services/TicketService.ts`
-
----
-
-### 22. `/notification` — Notification Management
-**File:** `src/commands/notificationCommand.ts`  
-**Permission:** Server Owner or Global Owner (`global`: Global Owner only)
-
-| Subcommand | Description | Options | Status |
-|------------|-------------|---------|--------|
-| `list` | List notification history | none | ✅ Implemented |
-| `config` | Configure notification delivery | `type` (string), `channel` (string) | ✅ Implemented |
-| `test` | Send a test notification | `type` (string) | ✅ Implemented |
-| `global` | View Global Owner inbox | none | ✅ Implemented |
-
-**Schema:** `notification_configs` table (migration 002)  
-**Service:** `src/services/NotificationService.ts`
-
----
-
-### 23. `/help` — Interactive Command Guide
-**File:** `src/commands/helpCommand.ts`  
-**Permission:** All users
-
-| Option | Description | Values | Status |
-|--------|-------------|--------|--------|
-| `category` | Command category to view | owner/server/staff/activity/monitor/scan/ticket/integration/review/warning/appeal/leave/analytics/report/settings/security/logs/backup/system/notification/all | ✅ Implemented |
-
----
-
-## Database Schema (Migration 002)
-
-**File:** `src/database/migrations/002_command_expansion.sql`
-
-| Table | Purpose |
-|-------|---------|
-| `integration_configs` | Third-party ticket integrations per guild |
-| `backup_records` | Database backup and recovery history |
-| `notification_configs` | Per-guild notification routing |
-| `report_schedules` | Scheduled report generation |
-| `staff_discovery_configs` | Staff role discovery configuration |
-| `command_permission_overrides` | Per-command permission overrides |
-
----
-
-## Implementation Status Summary
-
-| Category | Commands | Subcommands | Status |
-|----------|----------|-------------|--------|
-| Owner/Admin | 2 | 9 | ✅ Complete |
-| Server/Dashboard | 2 | 6 | ✅ Complete |
-| Staff/Activity | 2 | 18 | ✅ Complete |
-| Monitor/Scan | 2 | 8 | ✅ Complete |
-| Ticket/Integration | 2 | 12 | ✅ Complete |
-| Review/Warning | 2 | 12 | ✅ Implemented |
-| Appeal/Leave | 2 | 10 | ✅ Implemented |
-| Analytics/Report | 2 | 7 | ✅ Implemented |
-| Settings/Security | 2 | 12 | ✅ Implemented |
-| Logs/Backup | 2 | 7 | ✅ Implemented |
-| System/Notification | 2 | 8 | ✅ Implemented |
-| Help | 1 | 1 | ✅ Implemented |
-| **Total** | **23** | **~110** | **✅ All implemented** |
-
----
-
-## Test Coverage
-
-**Test file:** `tests/07-command-expansion-new-roots.test.ts`  
-**Total tests:** 52 (all passing)
-
-Covered scenarios:
-- Global Owner can access every global command and manage every registered guild
-- Server Owner can manage their own server but not another server
-- Co-Owner, Discord Administrator, Management, Moderator, Staff, ordinary member cannot use administrative commands
-- Unauthorized buttons, modals, and dashboard actions are rejected
-- Permission checks work after container reopen (simulates bot restart)
-- Unauthorized attempts are recorded in audit logs
-- Bot Admin cannot appoint itself Global Owner
-- Guild isolation: Server A owner cannot access Server B data
-
-**Other test files (26 tests):**
-- `tests/01-authorization-and-isolation.test.ts` — Global Owner, permissions, guild isolation
-- `tests/02-roster-and-scanner.test.ts` — Roster and scanner
-- `tests/03-tickets-and-adapters.test.ts` — Ticket adapters
-- `tests/04-reviews-warnings-and-leave.test.ts` — Reviews, warnings, leave
-- `tests/05-dashboards-reports-commands-and-backup.test.ts` — Dashboards, reports, commands, backup
-- `tests/06-slash-command-handlers.test.ts` — Existing command handlers
-
-**Grand total:** 78 tests across 7 test files, all passing.
-
----
-
-## Security Implementation (14 Points)
-
-| # | Requirement | Implementation |
-|---|-------------|----------------|
-| 1 | Identify server owner via guild `ownerId` | `PermissionService.evaluateGuildPermissions()` reads `guild_config.owner_id` |
-| 2 | Identify Global Owner via ID only | `isPermanentGlobalOwner()` — exact string match against `1131248987173814336` |
-| 3 | Never authorize via role names/usernames/nicknames/Admin permission | Only exact User ID and Role ID in `guild_permission_assignments` |
-| 4 | Verify permissions on every slash command | All 23 commands call `assertAuthorizedOrDenied()` or `assertGuildCapability()` |
-| 5 | Verify on every button | Dashboard buttons use `createAccessDeniedButtonRow()` |
-| 6 | Verify on every modal | Modal submissions route through `interactionRouter.ts` with permission checks |
-| 7 | Verify on every select menu | Select menus route through `interactionRouter.ts` with permission checks |
-| 8 | Verify on every dashboard action | `GlobalOwnerDashboard.ts` and `ServerManagementDashboard.ts` enforce per-action |
-| 9 | Enforce in backend service logic | `PermissionService`, `WarningService`, `LeaveService`, etc. enforce server-side |
-| 10 | Branded ACCESS DENIED embed | `src/utils/accessDenied.ts` — `createAccessDeniedEmbed()` |
-| 11 | Record unauthorized attempts in audit logs | `assertAuthorizedOrDenied()` logs `UNAUTHORIZED_ATTEMPT` category |
-| 12 | Prevent server owners from accessing other guilds | `evaluateGuildPermissions()` checks `guild_config.owner_id` per guild |
-| 13 | Prevent Bot Admins from appointing themselves Global Owner | `addBotAdmin()` rejects `isPermanentGlobalOwner(targetUserId)` |
-| 14 | Update local permissions on Discord ownership change | `evaluateGuildPermissions()` re-syncs on `actualGuildOwnerId` mismatch |
-
----
-
-## Files Modified / Created
-
-**New command modules (9):**
-- `src/commands/adminCommand.ts`
-- `src/commands/activityCommand.ts`
-- `src/commands/analyticsCommand.ts`
-- `src/commands/appealCommand.ts`
-- `src/commands/backupCommand.ts`
-- `src/commands/helpCommand.ts`
-- `src/commands/integrationCommand.ts`
-- `src/commands/leaveCommand.ts`
-- `src/commands/logsCommand.ts`
-- `src/commands/monitorCommand.ts`
-- `src/commands/notificationCommand.ts`
-- `src/commands/reportCommand.ts`
-- `src/commands/scanCommand.ts`
-- `src/commands/securityCommand.ts`
-- `src/commands/serverCommand.ts`
-- `src/commands/systemCommand.ts`
-
-**Modified:**
-- `src/commands/index.ts` — registered all 23 commands
-- `src/database/migrations/002_command_expansion.sql` — 6 new tables
-- `src/utils/accessDenied.ts` — ACCESS DENIED embed + `assertAuthorizedOrDenied()`
-
-**New tests:**
-- `tests/07-command-expansion-new-roots.test.ts` — 52 tests for all new commands
+```bash
+npm run typecheck   # zero TypeScript errors
+npm test            # command registry + authorization + roster + tickets + website tests
+npm run build       # compiles and copies dashboard assets into dist/public
+```

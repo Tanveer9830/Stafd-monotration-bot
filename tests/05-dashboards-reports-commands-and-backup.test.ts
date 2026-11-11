@@ -1,7 +1,5 @@
 import fs from 'node:fs';
-import { ApplicationCommandOptionType } from 'discord.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ALL_COMMANDS } from '../src/commands';
 import { GLOBAL_OWNER_ID, PERMANENT_EMBED_FOOTER } from '../src/config/branding';
 import { EmojiManager, parseAndValidateCustomEmoji } from '../src/config/emojis';
 import { GLOBAL_DASHBOARD_SECTIONS, GlobalOwnerDashboard } from '../src/dashboards/GlobalOwnerDashboard';
@@ -40,98 +38,6 @@ describe('Section 11–20: Slash Commands, Dashboards, Persistent Buttons, Featu
 
   afterEach(() => {
     fx.cleanup();
-  });
-
-  it('registers every single requested slash command and subcommand from Specification Section 11', () => {
-    const discoveredPaths = new Set<string>();
-
-    for (const cmd of ALL_COMMANDS) {
-      const json = cmd.data.toJSON();
-      const options = json.options ?? [];
-      const hasSubcommands = options.some(
-        (o) =>
-          o.type === ApplicationCommandOptionType.Subcommand ||
-          o.type === ApplicationCommandOptionType.SubcommandGroup,
-      );
-
-      if (!hasSubcommands) {
-        discoveredPaths.add(`/${json.name}`);
-      } else {
-        for (const opt of options) {
-          if (opt.type === ApplicationCommandOptionType.Subcommand) {
-            discoveredPaths.add(`/${json.name} ${opt.name}`);
-          } else if (opt.type === ApplicationCommandOptionType.SubcommandGroup && 'options' in opt && opt.options) {
-            for (const sub of opt.options) {
-              discoveredPaths.add(`/${json.name} ${opt.name} ${sub.name}`);
-            }
-          }
-        }
-      }
-    }
-
-    const requiredCommands = [
-      // A. Global Owner commands
-      '/owner panel',
-      '/owner admin add',
-      '/owner admin remove',
-      '/owner admin list',
-      '/owner guilds',
-      '/owner guild-info',
-      '/owner features',
-      '/owner global-stats',
-      '/owner audit',
-      // B. Staff commands
-      '/staff setup',
-      '/staff scan',
-      '/staff list',
-      '/staff active',
-      '/staff inactive',
-      '/staff at-risk',
-      '/staff unknown',
-      '/staff profile',
-      '/staff activity',
-      '/staff history',
-      '/staff roles add',
-      '/staff roles remove',
-      '/staff roles list',
-      '/staff report',
-      '/staff analytics',
-      '/staff coverage',
-      // C. Ticket commands
-      '/ticket setup',
-      '/ticket channels',
-      '/ticket categories',
-      '/ticket status',
-      '/ticket stats',
-      '/ticket staff',
-      '/ticket report',
-      '/ticket diagnose',
-      // D. Review commands
-      '/review pending',
-      '/review history',
-      '/review approve',
-      '/review reject',
-      '/review later',
-      '/review cancel',
-      // E. Warning commands
-      '/warning history',
-      '/warning profile',
-      '/warning issue',
-      '/warning remove',
-      '/warning appeal',
-      '/warning config',
-      // F. Settings commands
-      '/settings inactivity',
-      '/settings features',
-      '/settings alerts',
-      '/settings permissions',
-      '/settings leave',
-      '/settings logs',
-    ];
-
-    for (const req of requiredCommands) {
-      expect(discoveredPaths.has(req), `Missing command: ${req}`).toBe(true);
-    }
   });
 
   it('renders all 12 Global Owner Dashboard sections & all 14+ Server Dashboard sections with pagination & strict security', () => {

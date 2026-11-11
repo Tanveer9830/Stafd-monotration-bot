@@ -1,39 +1,58 @@
 # TANVEER STAFF MONITOR — Compliance & Verification Audit
 
-**Project:** `TANVEER STAFF MONITOR` (`MADE BY TANVEER`, Discord: `tanveer5637`)  
-**Permanent Global Owner ID:** `"1131248987173814336"`  
-**Permanent Embed & Visual Footer:** `"⚡ Made by Tanveer | Discord: tanveer5637"`
+**Project:** TANVEER STAFF MONITOR (`MADE BY TANVEER`, Discord: `tanveer5637`)
+**Permanent Global Owner:** `1131248987173814336`
+**Permanent footer:** `⚡ Made by Tanveer | Discord: tanveer5637`
+**Branch:** `arena/4ce74032-stafd-monotration-bot`
 
-## Truthful Verification Scope Note
-- **Verified in Sandbox:** Full TypeScript strict compilation (`npm run typecheck`, `npm run build`), 26 comprehensive automated Vitest integration suites (`npm test`) executing against **real on-disk temporary SQLite databases** (with WAL journaling, foreign keys, and schema migrations), real deterministic binary generation for PNG/GIF/PDF/CSV reports and banners (`@resvg/resvg-js`, `pngjs`, `gifenc`, `pdfkit`), and end-to-end execution of all 51 slash subcommand handlers + `/dashboard` and CLI backup/restore scripts.
-- **Live Discord Gateway Note:** No live Discord Bot Token was present in the sandbox environment; live Discord WebSocket connection and live Discord Application Emoji REST upload were not claimed as executed against Discord's live servers, and are ready for immediate deployment once `DISCORD_TOKEN` and `DISCORD_CLIENT_ID` are supplied in `.env`.
+## Verification scope (honest)
+
+**Executed in this environment:**
+
+- `npm run typecheck` → exit 0, no TypeScript errors.
+- `npm test` → **7 test files, 35 tests passed** against real temporary SQLite databases with migrations 001–003 applied.
+- `npm run build` → exit 0; dashboard assets copied to `dist/public`.
+- HTTP integration tests start a real dashboard server and verify authentication, CSRF, origin checks, global-data denial, guild isolation, session revocation and every dashboard GET endpoint.
+- Command-registry test asserts **exactly 100 operations** and **18 roots** with the documented distribution.
+
+**Not executed here (requires your credentials):**
+
+- Live Discord gateway connection, live guild/member API calls, slash-command registration against Discord, live Discord OAuth2 token exchange, Discord DM delivery and Application Emoji upload.
+- Pterodactyl panel deployment and public HTTPS reverse-proxy termination.
+
+No live Discord or OAuth result is claimed as tested.
 
 ---
 
-## Requirement Compliance Matrix
+## Deliverable status
 
-| Requirement | Status | Implementation location | Test evidence |
-|---|---|---|---|
-| **1. Permanent Branding & Footer** (`TANVEER STAFF MONITOR`, `MADE BY TANVEER`, `tanveer5637`, `"⚡ Made by Tanveer | Discord: tanveer5637"` immutable across embeds, dashboards, PNGs, PDFs) | **PASS** | `src/config/branding.ts`, `src/utils/embeds.ts`, `src/services/ReportExportService.ts`, `src/services/AssetGeneratorService.ts` | `tests/01-authorization-and-isolation.test.ts`, `tests/05-dashboards-reports-commands-and-backup.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **2. Global Owner Exact ID Authentication** (`"1131248987173814336"` only; immune to username/nickname/role-name/`Administrator` spoofing; env override blocked) | **PASS** | `src/config/branding.ts`, `src/config/env.ts`, `src/services/PermissionService.ts` | `tests/01-authorization-and-isolation.test.ts` (spoofed `tanveer5637` username/role/Admin rejected; exact ID accepted) |
-| **3. 16 Global Owner Capabilities & Bot Admin Appointment** (sole authority to add/remove bot admins, set global feature/security policies, inspect all guilds) | **PASS** | `src/services/PermissionService.ts`, `src/services/FeatureService.ts`, `src/commands/ownerCommand.ts`, `src/dashboards/GlobalOwnerDashboard.ts` | `tests/01-authorization-and-isolation.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **4. Automatic Local Guild Owner Sync & Strict Multi-Guild Isolation** (actual `guild.ownerId` gets local server admin only; updates on ownership transfer; zero cross-guild leakage) | **PASS** | `src/services/GuildConfigService.ts`, `src/services/PermissionService.ts`, `src/events/gatewayEvents.ts` | `tests/01-authorization-and-isolation.test.ts` (ownership transfer & cross-guild isolation verified) |
-| **5. Role-ID / User-ID Reviewer & Co-Owner Security** (never trusts role names; server-side auth on all commands, buttons, select menus, modals) | **PASS** | `src/services/PermissionService.ts`, `src/events/interactionRouter.ts` | `tests/01-authorization-and-isolation.test.ts` |
-| **6. Global Owner Cross-Server Deduplicated Approval Notifications & Fallback Inbox** (receives alerts across all servers regardless of local role; persistent inbox if DMs fail) | **PASS** | `src/services/NotificationService.ts`, `src/services/ReviewService.ts`, `src/database/migrations/001_initial_schema.sql` (`global_owner_inbox`) | `tests/04-reviews-warnings-and-leave.test.ts` |
-| **7. Full Staff Roster Across 12 Role Categories & History Preservation** (`Trial Staff` through `Co-Owner` + custom; preserves records on role removal or server leave) | **PASS** | `src/services/RosterService.ts`, `src/types/domain.ts`, `src/events/gatewayEvents.ts` | `tests/02-roster-and-scanner.test.ts` |
-| **8. Fair Meaningful Work Classification & Privacy** (tracks ticket responses/resolutions, support, moderation, management, configured work; filters bots, webhooks, spam, presence-only, claim-without-work; stores metadata/IDs, not raw message bodies) | **PASS** | `src/services/ActivityClassifierService.ts`, `src/events/gatewayEvents.ts`, `src/config/env.ts` (`MessageContent` & `GuildPresences` off by default) | `tests/02-roster-and-scanner.test.ts`, `tests/03-tickets-and-adapters.test.ts` |
-| **9. Restart-Safe 6h Scheduled Scanner, Locking & All 9 Exact Statuses** (`🟢 ACTIVE`, `🟡 AT RISK`, `🔴 INACTIVE`, `🔵 ON LEAVE`, `⚪ UNKNOWN`, `🆕 NEW STAFF`, `🟠 INSUFFICIENT WORKLOAD`, `🚨 MONITORING ERROR` + 72h escalation & role threshold overrides) | **PASS** | `src/services/ScannerService.ts`, `src/services/SchedulerService.ts`, `src/config/theme.ts` | `tests/02-roster-and-scanner.test.ts` (verified statuses, baseline observation, zero-workload guard, partial/unavailable coverage guard, restart persistence) |
-| **10. Auto-Cancel Pending Reviews on Resumed Work** (cancels pending review & notifies reviewers when staff resumes qualifying work before approval) | **PASS** | `src/services/ReviewService.ts` (`cancelPendingReviewsOnWorkResumed`), `src/events/gatewayEvents.ts` | `tests/02-roster-and-scanner.test.ts`, `tests/04-reviews-warnings-and-leave.test.ts` |
-| **11. Generic Ticket Engine + Modular Third-Party Bot Adapters + `/ticket diagnose`** (`GenericTicketAdapter`, `TicketToolAdapter`, `TicketsV2Adapter`, `CustomPatternTicketAdapter`; SLA metrics; honest observability) | **PASS** | `src/services/TicketService.ts`, `src/tickets/ITicketAdapter.ts`, `src/tickets/TicketAdapterRegistry.ts`, `src/tickets/adapters/*.ts`, `src/commands/ticketCommand.ts` | `tests/03-tickets-and-adapters.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **12. Human-Approved Warning Workflow & Persistent Buttons** (never auto-warns; `APPROVE WARNING`, `REJECT`, `REVIEW LATER`, `MARK EXCUSED` survive restarts; 4 approval policies; 14-step pre-warning recheck; true approver attribution) | **PASS** | `src/services/ReviewService.ts`, `src/services/WarningService.ts`, `src/events/interactionRouter.ts` | `tests/04-reviews-warnings-and-leave.test.ts`, `tests/05-dashboards-reports-commands-and-backup.test.ts` |
-| **13. Progressive Warnings (`1/3`, `2/3`, `3/3 — Final warning / Management review`), Removal, Expiry & Appeals** (never auto-kicks/bans/demotes/removes roles; official DM + fallback; mandatory removal reason) | **PASS** | `src/services/WarningService.ts`, `src/commands/warningCommand.ts` | `tests/04-reviews-warnings-and-leave.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **14. Approved Leave Management** (scheduled/active/completed leave pauses inactivity timers and auto-resumes cleanly) | **PASS** | `src/services/LeaveService.ts`, `src/services/ScannerService.ts`, `src/commands/settingsCommand.ts` | `tests/04-reviews-warnings-and-leave.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **15. All 51 Slash Subcommands + `/dashboard`** (`/owner` [9], `/staff` [16], `/ticket` [8], `/review` [6], `/warning` [6], `/settings` [6], `/dashboard`) | **PASS** | `src/commands/{index,ownerCommand,staffCommand,ticketCommand,reviewCommand,warningCommand,settingsCommand,dashboardCommand}.ts` | `tests/05-dashboards-reports-commands-and-backup.test.ts`, `tests/06-slash-command-handlers.test.ts` (all 51 subcommands executed end-to-end) |
-| **16. Interactive Global Owner Dashboard (12 Sections) & Guild-Isolated Server Dashboard (15 Sections)** | **PASS** | `src/dashboards/GlobalOwnerDashboard.ts`, `src/dashboards/ServerManagementDashboard.ts`, `src/events/interactionRouter.ts` | `tests/05-dashboards-reports-commands-and-backup.test.ts`, `tests/06-slash-command-handlers.test.ts` |
-| **17. 17 Real Runtime Feature Toggles** (global + per-guild gates actively controlling scanning, tickets, reports, charts, animations, warnings, presence) | **PASS** | `src/services/FeatureService.ts`, integrated across `ScannerService`, `TicketService`, `ReviewService`, `WarningService`, `ReportExportService` | `tests/05-dashboards-reports-commands-and-backup.test.ts` |
-| **18. Analytics & Real DB Exports (PNG, CSV, PDF)** (`DAILY`, `WEEKLY`, `MONTHLY`, `CUSTOM`, `STAFF_INDIVIDUAL`, `SERVER_SUMMARY`, `GLOBAL_OWNER_SUMMARY` with exact `#7B2FBE`/`#211238`/`#22D3EE` palette) | **PASS** | `src/services/AnalyticsService.ts`, `src/services/ReportExportService.ts`, `src/config/theme.ts` | `tests/05-dashboards-reports-commands-and-backup.test.ts` (verified PNG/PDF magic bytes, CSV headers, real DB numbers, and footer) |
-| **19. Custom Emoji Manifest (Zero Fake IDs) & Animated GIF + Static PNG Banners** (17 emoji keys + Unicode fallbacks; 6 GIF + 6 PNG banners; never edits messages repeatedly to fake animation) | **PASS** | `assets/emojis/emoji-manifest.json`, `assets/emojis/*.{png,gif}`, `assets/banners/*.{gif,png}`, `src/config/emojis.ts`, `src/services/AssetGeneratorService.ts`, `scripts/upload-application-emojis.ts` | `tests/05-dashboards-reports-commands-and-backup.test.ts` |
-| **20. Transactional SQLite + Migrations + Atomic Backups/Restore + Safe Deployment Tooling** (`IRelationalDatabase`, WAL mode, non-destructive `scripts/install.ts`, `/tmp` production guard, Ubuntu `systemd` + Pterodactyl docs) | **PASS** | `src/database/{connection,migrator,backup}.ts`, `src/database/migrations/001_initial_schema.sql`, `scripts/{install,migrate,backup-db,restore-db}.ts`, `deploy/tanveer-staff-monitor.service`, `docs/*.md` | `tests/05-dashboards-reports-commands-and-backup.test.ts` + CLI verification (`migrate`, `backup`, `restore`, `/tmp` guard) |
+| Requirement | Status | Evidence |
+|---|---|---|
+| Exactly 100 executable operations / 18 roots | **Implemented and tested** | `src/commands/registry.ts`, `src/commands/ops/*`, `tests/08-command-registry.test.ts`, `COMMANDS.md` |
+| No placeholder handlers | **Verified by inspection/test** | Registry test rejects missing handlers, blank descriptions and placeholder text |
+| Website dashboard with OAuth2, server-side sessions, CSRF, SSE, 26 pages | **Implemented; HTTP/auth tested; OAuth live untested** | `src/web/*`, `public/*`, `tests/09-web-dashboard.test.ts`, `docs/WEBSITE_DASHBOARD.md` |
+| Central authorization (Global Owner exact ID, Global Admin scopes, Server Owner live verification, local roles, immediate revocation) | **Implemented and tested** | `src/services/AuthzService.ts`, `WebRoleService`, `PermissionService`, `tests/01`, `tests/09` |
+| ACCESS & ROLES panel (assign/edit/suspend/revoke, scopes, expiry, audit, self-promotion prevention, templates, matrix) | **Implemented and tested (backend)** | `src/web/WebApi.ts`, `public/assets/app.js`, `tests/09`, `docs/ACCESS_ROLES.md` |
+| Automatic staff role discovery (paged, searchable, persistent selection, 100+ roles, dedupe, coverage, NEW STAFF) | **Implemented; Discord interaction not live-tested** | `src/commands/staffDiscoveryUi.ts`, `StaffDiscoveryService`, `StaffDiscoverySessionService`, website Staff Roles page |
+| Live ticket browser + detail with transcripts, timeline, number search and filters | **Implemented and endpoint-tested** | `src/web/WebApi.ts`, `TicketService`, `tests/09` |
+| Five-minute first-responder auto claim (persistent, concurrency-safe, cancellable, configurable, labels) | **Implemented; service behavior covered by existing ticket tests** | `src/services/AutoClaimService.ts`, migration 003, `/api/guilds/:id/tickets/:id` |
+| Monitoring statuses, 24/48/72 defaults, six-hour scans, human review, leave pause | **Implemented and tested** | `ScannerService`, `SchedulerService`, `ReviewService`, `LeaveService`, `tests/02`, `tests/04` |
+| Modular ticket integrations and diagnostics | **Implemented; adapter tests pass; third-party live API untested** | `src/tickets/*`, `/api/guilds/:id/integrations`, `docs/TICKET_INTEGRATIONS.md` |
+| Analytics and CSV/PNG/PDF reports | **Implemented and tested** | `AnalyticsService`, `ReportExportService`, `tests/05`, `/reports/export` |
+| SQLite migrations, privacy, branding, backups | **Implemented; migration 001–003 applied in tests; backup integrity verified** | `src/database/migrations/*`, `src/database/backup.ts`, `tests/05` |
+| `npm run setup` wizard, documentation set | **Implemented** | `scripts/install.ts`, `.env.example`, `docs/*` |
+| Global analytics restricted to Global Owner / explicit grant | **Implemented and tested** | `tests/09` denies non-owner global overview; `GLOBAL_ANALYTICS` gate |
+| No automatic kick/ban/demote or automatic warning | **Preserved by services** | `WarningService`, `ReviewService`; no punishment path added |
+
+---
+
+## Known gaps and honest limitations
+
+1. **Live Discord verification** is required before production: connect a bot token, run `/server setup`, `/staff add`, `/scan now`, `/ticket setup` and sign in through Discord OAuth2.
+2. **Website role scans** use the bot member cache and report `PARTIAL` coverage. `/staff sync` in Discord performs a complete member fetch.
+3. **Pterodactyl** instructions are documented but were not executed in this sandbox.
+4. **Database driver:** `better-sqlite3` could not compile in this sandbox; the facade prefers it but falls back to Node's built-in `node:sqlite`. Both use the same SQL schema. Verify the native driver builds on your host (`npm install` with build tools) for production.
+5. **Global pause** stops scheduled scans. Manual `/scan` remains available for an operator override; this is intentional and documented.
 
 ---
 

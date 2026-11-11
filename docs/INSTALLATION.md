@@ -25,7 +25,10 @@
      - **Server Members Intent (`GuildMembers`):** **ENABLED** *(Required for complete configured staff roster synchronization, detecting role additions/removals, and preserving historical records when staff leave).*
      - **Presence Intent (`GuildPresences`):** **OPTIONAL / OFF by default** *(Online status never counts as work; enable only if you toggle `presence_monitoring=true`).*
      - **Message Content Intent (`MessageContent`):** **OPTIONAL / OFF by default** *(Embeds, channel events, audit logs, and metadata work without it; enable only if you want deeper word-count & duplicate-text filtering on plain-text ticket replies).*
-4. Navigate to **OAuth2 → URL Generator**:
+4. Navigate to **OAuth2 → General**:
+   - Copy the **Client Secret** into `DISCORD_CLIENT_SECRET` (dashboard sign-in).
+   - Add **Redirects** entries for your dashboard, e.g. `http://localhost:3000/auth/callback` and `https://staff.example.com/auth/callback`.
+5. Navigate to **OAuth2 → URL Generator**:
    - **Scopes:** `bot`, `applications.commands`
    - **Bot Permissions (Least-Privilege Set):**
      - `View Channels`
@@ -49,14 +52,29 @@ npm run deploy:commands
 npm start
 ```
 
+The wizard asks for the bot token, application ID, optional developer guild, database path, dashboard public URL and optional OAuth2 client secret. It writes `.env` with mode `0600`.
+
 ### Installer Safety Guarantees
 - `npm run setup` **never** overwrites an existing `.env` file.
 - `npm run setup` **never** overwrites or erases an existing SQLite database (`./data/tanveer-monitor.sqlite`).
 - `GLOBAL_OWNER_ID` is permanently locked in code to `1131248987173814336`.
+- If `.env` already exists the wizard reads its `DATABASE_PATH` and migrates that database; it does not create a second one.
+- The website stays disabled for sign-in until `DISCORD_CLIENT_SECRET` is set; the login page explains the missing values instead of faking access.
 
 ---
 
-## 4. Custom Emoji Upload Procedure
+## 4. Website dashboard
+
+After the bot starts, the dashboard listens on `WEB_PORT` (default `3000`) at `WEB_BASE_URL`.
+
+1. Confirm the redirect URL in the Discord Developer Portal **exactly** matches `OAUTH2_REDIRECT_URI`.
+2. Open `WEB_BASE_URL` and click **Continue with Discord**.
+3. The Permanent Global Owner sees the platform pages; a Server Owner sees only their server.
+4. For production, use HTTPS and see `docs/DEPLOYMENT.md` for reverse-proxy settings.
+
+Full details: `docs/WEBSITE_DASHBOARD.md`, `docs/ACCESS_ROLES.md`, `docs/ENVIRONMENT_VARIABLES.md`.
+
+## 5. Custom Emoji Upload Procedure
 
 Custom emoji `128x128` PNG and animated GIF assets are pre-generated in `assets/emojis/` alongside `assets/emojis/emoji-manifest.json`.
 

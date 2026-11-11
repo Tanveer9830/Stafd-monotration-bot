@@ -32,6 +32,10 @@ export interface CreateAuditLogInput {
     | 'LEAVE'
     | 'SETTINGS'
     | 'BACKUP'
+    | 'ACCESS_ROLES'
+    | 'WEB_SESSION'
+    | 'SECURITY'
+    | 'SYSTEM'
     | 'UNAUTHORIZED_ATTEMPT';
   actionType: string;
   targetType?: string | null;

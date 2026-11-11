@@ -10,3 +10,10 @@ for (const file of fs.readdirSync(srcDir)) {
     fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file));
   }
 }
+
+const publicSrc = path.resolve(process.cwd(), 'public');
+const publicDest = path.resolve(process.cwd(), 'dist/public');
+if (fs.existsSync(publicSrc)) {
+  fs.cpSync(publicSrc, publicDest, { recursive: true });
+  console.log('Copied dashboard assets to dist/public');
+}
