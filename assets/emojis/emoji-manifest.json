@@ -1,0 +1,114 @@
+{
+  "$schema": "./emoji-manifest.schema.json",
+  "project": "TANVEER STAFF MONITOR",
+  "creator": "MADE BY TANVEER | Discord: tanveer5637",
+  "note": "Populate `customEmoji` ONLY after uploading real custom or application emojis in the Discord Developer Portal (or running `npm run upload:emojis`). Leave empty to automatically use validated Unicode fallbacks. Never enter fake IDs.",
+  "emojis": {
+    "owner": {
+      "unicodeFallback": "👑",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_owner.png",
+      "animatedAssetFile": "assets/emojis/tsm_owner.gif",
+      "description": "Permanent Global Owner & Creator badge"
+    },
+    "scanning": {
+      "unicodeFallback": "🛰️",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_scanning.png",
+      "animatedAssetFile": "assets/emojis/tsm_scanning.gif",
+      "description": "Scheduled & manual staff roster scanning"
+    },
+    "active": {
+      "unicodeFallback": "🟢",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_active.png",
+      "description": "Qualifying active staff indicator"
+    },
+    "inactive": {
+      "unicodeFallback": "🔴",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_inactive.png",
+      "description": "Confirmed inactive staff indicator"
+    },
+    "warning": {
+      "unicodeFallback": "⚠️",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_warning.png",
+      "description": "Warning & escalation alert indicator"
+    },
+    "approval": {
+      "unicodeFallback": "✅",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_approval.png",
+      "description": "Authorized human warning approval"
+    },
+    "rejection": {
+      "unicodeFallback": "✖️",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_rejection.png",
+      "description": "Review rejection or appeal denial"
+    },
+    "tickets": {
+      "unicodeFallback": "🎫",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_tickets.png",
+      "description": "Ticket monitoring & workload tracking"
+    },
+    "security": {
+      "unicodeFallback": "🛡️",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_security.png",
+      "description": "Permissions, guild isolation & security policy"
+    },
+    "analytics": {
+      "unicodeFallback": "📊",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_analytics.png",
+      "description": "Staff analytics & chart reporting"
+    },
+    "success": {
+      "unicodeFallback": "✨",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_success.png",
+      "description": "Operation completed successfully"
+    },
+    "error": {
+      "unicodeFallback": "🚨",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_error.png",
+      "description": "Monitoring error or failed operation"
+    },
+    "premium": {
+      "unicodeFallback": "💎",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_premium.png",
+      "animatedAssetFile": "assets/emojis/tsm_premium.gif",
+      "description": "Premium platform branding accent"
+    },
+    "loading": {
+      "unicodeFallback": "⏳",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_loading.png",
+      "animatedAssetFile": "assets/emojis/tsm_loading.gif",
+      "description": "In-progress calculation or export indicator"
+    },
+    "database": {
+      "unicodeFallback": "🗄️",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_database.png",
+      "description": "Persistent SQLite storage, backups & migrations"
+    },
+    "notifications": {
+      "unicodeFallback": "🔔",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_notifications.png",
+      "description": "Review alerts, DM notifications & Global Inbox"
+    },
+    "performance": {
+      "unicodeFallback": "⚡",
+      "customEmoji": "",
+      "assetFile": "assets/emojis/tsm_performance.png",
+      "description": "Response speed, consistency & workload fairness"
+    }
+  }
+}
