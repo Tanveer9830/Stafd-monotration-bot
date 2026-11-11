@@ -1,24 +1,58 @@
 import { REST, Routes } from 'discord.js';
+import { activityCommand } from './activityCommand';
+import { adminCommand } from './adminCommand';
+import { analyticsCommand } from './analyticsCommand';
+import { appealCommand } from './appealCommand';
+import { backupCommand } from './backupCommand';
 import { dashboardCommand } from './dashboardCommand';
+import { helpCommand } from './helpCommand';
+import { integrationCommand } from './integrationCommand';
+import { leaveCommand } from './leaveCommand';
+import { logsCommand } from './logsCommand';
+import { monitorCommand } from './monitorCommand';
+import { notificationCommand } from './notificationCommand';
 import { ownerCommand } from './ownerCommand';
+import { reportCommand } from './reportCommand';
 import { reviewCommand } from './reviewCommand';
+import { scanCommand } from './scanCommand';
+import { securityCommand } from './securityCommand';
+import { serverCommand } from './serverCommand';
 import { settingsCommand } from './settingsCommand';
 import { staffCommand } from './staffCommand';
+import { systemCommand } from './systemCommand';
 import { ticketCommand } from './ticketCommand';
-import { SlashCommandModule } from './types';
 import { warningCommand } from './warningCommand';
+import { SlashCommandModule } from './types';
 
 export const ALL_COMMANDS: readonly SlashCommandModule[] = [
   ownerCommand,
+  adminCommand,
+  serverCommand,
+  dashboardCommand,
   staffCommand,
+  activityCommand,
+  monitorCommand,
+  scanCommand,
   ticketCommand,
+  integrationCommand,
   reviewCommand,
   warningCommand,
+  appealCommand,
+  leaveCommand,
+  analyticsCommand,
+  reportCommand,
   settingsCommand,
-  dashboardCommand,
+  securityCommand,
+  logsCommand,
+  backupCommand,
+  systemCommand,
+  notificationCommand,
+  helpCommand,
 ];
 
-export const COMMAND_MAP = new Map<string, SlashCommandModule>(ALL_COMMANDS.map((c) => [c.name, c]));
+export const COMMAND_MAP = new Map<string, SlashCommandModule>(
+  ALL_COMMANDS.map((c) => [c.name, c]),
+);
 
 export async function registerDiscordSlashCommands(params: {
   token: string;
