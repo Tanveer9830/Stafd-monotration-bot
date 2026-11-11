@@ -1,122 +1,120 @@
 # TANVEER STAFF MONITOR
 
 > **MADE BY TANVEER** · Creator Discord: `tanveer5637`  
-> Permanent Footer: `⚡ Made by Tanveer | Discord: tanveer5637`  
-> Permanent Global Owner Discord User ID: `1131248987173814336`
+> Permanent footer: `⚡ Made by Tanveer | Discord: tanveer5637`  
+> Permanent Global Owner Discord user ID: `1131248987173814336`
 
-**TANVEER STAFF MONITOR** is a production-grade, multi-server Discord Staff Management, Ticket Monitoring, Inactivity Detection, Human-Approval Warning, and Executive Analytics Platform built with Node.js, TypeScript, `discord.js` v14, and transactional SQLite (`better-sqlite3` in WAL mode with PostgreSQL-ready repository abstractions).
-
----
-
-## Core Guarantees & Safety Principles
-
-1. **Immutable Creator & Global Owner Identity**
-   - Permanent project branding (`TANVEER STAFF MONITOR`, `MADE BY TANVEER`, footer `⚡ Made by Tanveer | Discord: tanveer5637`) is embedded across every Discord embed, dashboard, notification, PNG visual card, and PDF report, and cannot be removed or altered via runtime commands or guild settings.
-   - Global Owner privileges are authenticated **exclusively** against exact Discord User ID `"1131248987173814336"` (`src/config/branding.ts`, `src/services/PermissionService.ts`) — never by username, display name, nickname, role name, server ownership, or Discord `Administrator` permission.
-2. **Strict Multi-Guild Isolation & Role-ID Security**
-   - Every guild table enforces `guild_id` scoping.
-   - Actual Discord Guild Owners (`guild.ownerId`) automatically receive full **local** server administration for their own server only (dynamically synced on ownership transfer) without gaining Global Owner powers or cross-server visibility.
-   - Co-Owners and management reviewers are authorized strictly by configured Discord User IDs or Role IDs — never by role names.
-3. **Evidence-Based Activity & Zero False Warnings**
-   - Tracks real, verifiable staff work (ticket responses, ticket resolutions, support replies, moderation actions, management reviews, and configured work channels) while filtering bots, webhooks, rapid spam, presence-only changes, and claiming a ticket without meaningful follow-up work.
-   - Stores event metadata and snowflake IDs rather than raw message bodies; `MessageContent` and `GuildPresences` privileged intents are **disabled by default**.
-   - Never flags staff during initial baseline observation windows, approved leave (`🔵 ON LEAVE`), zero server-wide ticket/support demand (`🟠 INSUFFICIENT WORKLOAD`), `🆕 NEW STAFF` grace periods, or `PARTIAL` / `UNAVAILABLE` monitoring coverage (`⚪ UNKNOWN`, `🚨 MONITORING ERROR`).
-   - Automatically cancels pending warning reviews and notifies reviewers if a staff member resumes qualifying work before approval.
-4. **100% Human-Approved Warnings & Zero Automatic Punishments**
-   - **Never automatically issues a warning.** Every inactivity incident creates a persistent review card (`APPROVE WARNING`, `REJECT`, `REVIEW LATER`, `MARK EXCUSED`) surviving restarts in SQLite.
-   - Supports 4 configurable approval policies (`GLOBAL_OWNER_REQUIRED`, `ANY_AUTHORIZED_REVIEWER`, `TWO_PERSON_APPROVAL`, `GLOBAL_OWNER_AND_GUILD_OWNER`), executes a 14-step pre-warning recheck, requires final confirmation, and records the **actual** human approver (never attributing approval to Tanveer unless User ID `1131248987173814336` personally approved it).
-   - Progressive warnings (`1/3`, `2/3`, `3/3 — Final warning / Management review`) **never** auto-kick, auto-ban, auto-demote, or auto-remove roles.
+**TANVEER STAFF MONITOR** is a multi-server Discord staff accountability platform: live ticket capture, five-minute first-responder automatic claims, evidence-based activity monitoring, human-approved warnings, leave management, analytics, reports and a full website dashboard. It is built with Node.js, TypeScript, `discord.js` v14 and transactional SQLite (WAL, versioned migrations, Postgres-ready repository boundary).
 
 ---
 
-## Feature Architecture
+## What is included
 
-### 1. Slash Command Suite (51 Subcommands + `/dashboard`)
-| Root Command | Subcommands |
+| Area | Implementation |
 |---|---|
-| `/owner` | `panel`, `admin add`, `admin remove`, `admin list`, `guilds`, `guild-info`, `features`, `global-stats`, `audit` |
-| `/staff` | `setup`, `scan`, `list`, `active`, `inactive`, `at-risk`, `unknown`, `profile`, `activity`, `history`, `roles add`, `roles remove`, `roles list`, `report`, `analytics`, `coverage` |
-| `/ticket` | `setup`, `channels`, `categories`, `status`, `stats`, `staff`, `report`, `diagnose` |
-| `/review` | `pending`, `history`, `approve`, `reject`, `later`, `cancel` |
-| `/warning` | `history`, `profile`, `issue`, `remove`, `appeal`, `config` |
-| `/settings` | `inactivity`, `features`, `alerts`, `permissions`, `leave`, `logs` |
-| `/dashboard` | Opens the interactive guild-isolated Server Management Dashboard (or Global Owner Command Center) |
-
-### 2. Interactive Dashboards & Persistent Buttons
-- **Global Owner Command Center (`src/dashboards/GlobalOwnerDashboard.ts`)**: 12 interactive sections (`Overview`, `Connected Guilds`, `Guild Inspector`, `Global Inbox`, `Pending Approvals`, `Bot Admins`, `Global Features`, `Global Analytics`, `Warning Governance`, `System Health`, `Database Backups`, `Global Audit Log`) gated exclusively to `1131248987173814336`.
-- **Server Management Dashboard (`src/dashboards/ServerManagementDashboard.ts`)**: 15 guild-isolated sections (`Server Overview`, `Staff Roster`, `Active/At-Risk/Inactive Filters`, `Ticket Operations`, `Pending Reviews`, `Warning Ledger`, `Leave Management`, `Appeal Queue`, `Role Thresholds`, `Feature Toggles`, `Permissions & Reviewers`, `Alert Channels`, `Monitoring Coverage`, `Visual Reports & Exports`, `Audit Trail`) with select menus, pagination, modals, and instant actions.
-
-### 3. Ticket Engine & Third-Party Bot Adapters
-- Built-in generic Discord channel/thread ticket lifecycle tracker (`open`, `assigned`, `waiting_on_staff`, `waiting_on_user`, `escalated`, `resolved`, `closed`, `reopened`, `abandoned`) measuring first-response, average-response, and resolution SLAs.
-- Modular `ITicketAdapter` registry (`src/tickets/`) supporting:
-  - **Generic Channel/Category/Thread Engine** (`GenericTicketAdapter`)
-  - **Ticket Tool** (`TicketToolAdapter`, Bot ID `557628352828014614`)
-  - **Tickets v2** (`TicketsV2Adapter`, Bot ID `508391840525975553`)
-  - **Custom Regex / Embed Pattern Adapter** (`CustomPatternTicketAdapter`)
-- Includes `/ticket diagnose` to inspect permissions, channel visibility, intent flags, and adapter confidence without claiming hidden third-party bot state.
-
-### 4. 17 Real Runtime Feature Toggles
-Both Global Owner policies and per-guild settings control real runtime behavior across 17 switches:
-`roster_sync`, `scheduled_scanning`, `manual_scanning`, `ticket_monitoring`, `ticket_integrations`, `activity_monitoring`, `inactivity_detection`, `inactivity_reports`, `approval_notifications`, `warning_delivery`, `daily_reports`, `weekly_reports`, `monthly_reports`, `analytics`, `chart_generation`, `animated_assets`, and `presence_monitoring`.
-
-### 5. Branded Visuals, Animated Banners, Emojis & Exports
-- Deep-purple & neon-cyan executive theme (`#7B2FBE`, `#211238`, `#A855F7`, `#22D3EE`, `#22C55E`, `#F59E0B`, `#EF4444`, `#64748B`).
-- Centralized 17-key emoji manifest (`assets/emojis/emoji-manifest.json`) with clean Unicode fallbacks (zero fake snowflake IDs) and automated Discord Application Emoji uploader (`npm run upload:emojis`).
-- 6 animated GIF banners + 6 static PNG fallbacks (`welcome`, `staff-scanning`, `ticket-monitoring`, `warning-approval`, `owner-dashboard`, `system-health`) generated deterministically in `assets/banners/`.
-- Real database exports in **PNG** (`@resvg/resvg-js` + DejaVu fonts), **CSV**, and **PDF** (`pdfkit`) across `DAILY`, `WEEKLY`, `MONTHLY`, `CUSTOM`, `STAFF_INDIVIDUAL`, `SERVER_SUMMARY`, and `GLOBAL_OWNER_SUMMARY` scopes.
+| **Slash commands** | Exactly **100 operations** across **18 roots** (`/owner`, `/admin`, `/server`, `/staff`, `/activity`, `/ticket`, `/monitor`, `/scan`, `/review`, `/warning`, `/appeal`, `/leave`, `/analytics`, `/report`, `/integration`, `/settings`, `/system`, `/help`). No aliases, no hidden operations. See [`COMMANDS.md`](COMMANDS.md). |
+| **Website dashboard** | Discord OAuth2, hashed server-side sessions, CSRF, same-origin enforcement, SSE live updates, 26 pages. See [`docs/WEBSITE_DASHBOARD.md`](docs/WEBSITE_DASHBOARD.md). |
+| **Authorization** | Permanent Global Owner by exact ID; explicit Global Administrator scopes; Server Owner verified from live Discord; Server Co-Owner/Admin/Viewer website roles; backend enforcement on every route, command, button and stream. See [`docs/ACCESS_ROLES.md`](docs/ACCESS_ROLES.md). |
+| **Access & Roles panel** | Assign/edit/suspend/revoke, explicit scopes, expiration, role templates, permission matrix, audit history, self-promotion and escalation prevention. |
+| **Staff discovery** | Multi-role paginated picker with search and persisted selections (100+ roles), role IDs, dedupe, coverage reporting, `NEW STAFF` status. |
+| **Tickets** | Live browser, ticket detail with captured conversation and event timeline, number search, filters, adapter diagnostics, modular integrations. |
+| **Automatic claim** | Persistent five-minute first-responder timers (configurable 1–120), concurrency-safe execution, cancellation on manual claim/close, `MANUAL` vs `AUTOMATIC` labels. |
+| **Monitoring** | `ACTIVE`, `AT_RISK`, `INACTIVE`, `ON_LEAVE`, `UNKNOWN`, `NEW_STAFF`, `INSUFFICIENT_WORKLOAD`, `MONITORING_ERROR`; default 24h/48h/72h; six-hour scans; no automatic punishment. |
+| **Analytics & reports** | Server analytics, fairness-adjusted staff performance, daily/weekly/monthly reports, CSV/PNG/PDF exports. Global analytics only for the Global Owner (or an explicit `GLOBAL_ANALYTICS` grant). |
+| **Operations** | Verified backups, restore, migrations, system health, session security, optional reverse-proxy deployment on Ubuntu VPS or Pterodactyl. |
 
 ---
 
-## Quick Start
+## Safety guarantees
 
-### Prerequisites
-- **Node.js** `>= 20.0.0` (Node 22 LTS recommended)
-- Build tools (`gcc`, `g++`, `make`, `python3`) if compiling `better-sqlite3` from source
+1. **Immutable identity.** The Global Owner is matched only by exact ID `1131248987173814336` in `src/config/branding.ts`. A username, nickname, Discord role, guild ownership or Administrator permission never grants Global Owner. It cannot be changed by commands, settings, website screens or the environment.
+2. **Guild isolation.** Every guild-scoped query includes `guild_id`. Server Owners see their own server only; Global Administrators receive no cross-server data unless explicitly granted.
+3. **Human decisions.** Inactivity creates a review, never a warning. Warnings never auto-kick, auto-ban or auto-demote. Approved leave pauses inactivity scoring.
+4. **Honest coverage.** Scans and diagnostics report `FULL`, `PARTIAL` or `UNAVAILABLE`. Missing intents or permissions are surfaced; message content is marked unavailable rather than invented.
+5. **Privacy.** Message Content is optional and off by default. Transcript access requires `SERVER_VIEW_TRANSCRIPTS` and is audited.
+6. **No fabricated UI.** Every dashboard page reads a real endpoint. There are no sample rows, demo statistics or placeholder buttons. Integration secrets are write-only.
+7. **No secrets in logs or Git.** `.env` is ignored; pino redacts tokens; backups contain the database only.
 
-### Installation
+---
+
+## Quick start
+
+**Requirements:** Node.js `>= 20` (22 LTS recommended), build tools for native modules, and a Discord application.
+
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Generate animated GIF/PNG banners & emoji assets (already pre-generated in assets/)
-npm run generate:assets
-
-# 3. Non-destructive interactive setup (.env creation + persistent data directories + SQLite migrations)
-npm run setup
-
-# 4. Compile TypeScript production build
+npm run setup        # guided, never overwrites an existing .env
 npm run build
-
-# 5. Register Discord slash commands
-npm run deploy:commands
-
-# 6. Start the platform
 npm start
 ```
 
-> **Safety Note:** `npm run setup` never overwrites an existing `.env` file or an existing SQLite database, and `loadAppConfig()` rejects `/tmp` or `/var/tmp` paths in production so persistent data cannot be lost across host reboots.
+The process starts the Discord bot and the website dashboard together.
+
+### Minimum `.env`
+
+```env
+DISCORD_TOKEN=...
+DISCORD_CLIENT_ID=...
+DISCORD_CLIENT_SECRET=...              # dashboard OAuth2
+WEB_BASE_URL=http://localhost:3000
+OAUTH2_REDIRECT_URI=http://localhost:3000/auth/callback
+```
+
+Add the exact redirect URL in Discord Developer Portal → OAuth2 → Redirects. Full variable list: [`docs/ENVIRONMENT_VARIABLES.md`](docs/ENVIRONMENT_VARIABLES.md).
+
+Then in Discord:
+
+```text
+/server setup
+/staff add
+/ticket setup
+/scan now
+```
 
 ---
 
-## Operations & Documentation
+## Documentation
 
 | Guide | Path |
 |---|---|
-| First-Time Setup & Discord Portal Intents | [`docs/INSTALLATION.md`](docs/INSTALLATION.md) |
-| Ubuntu VPS (`systemd`) & Pterodactyl Hosting | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
-| Atomic SQLite Backup & Disaster Recovery | [`docs/BACKUP_AND_RECOVERY.md`](docs/BACKUP_AND_RECOVERY.md) |
-| Operational Diagnostics & Troubleshooting | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) |
-| Full Requirement-by-Requirement Audit | [`COMPLIANCE_AUDIT.md`](COMPLIANCE_AUDIT.md) |
+| Command reference (all 100 operations) | [`COMMANDS.md`](COMMANDS.md) |
+| Installation & Discord portal setup | [`docs/INSTALLATION.md`](docs/INSTALLATION.md) |
+| Discord intents, invite and OAuth2 | [`docs/DISCORD_SETUP.md`](docs/DISCORD_SETUP.md) |
+| Environment variables | [`docs/ENVIRONMENT_VARIABLES.md`](docs/ENVIRONMENT_VARIABLES.md) |
+| Website dashboard (OAuth2, sessions, CSRF, SSE, 26 pages, API) | [`docs/WEBSITE_DASHBOARD.md`](docs/WEBSITE_DASHBOARD.md) |
+| Access & Roles / permission model | [`docs/ACCESS_ROLES.md`](docs/ACCESS_ROLES.md) |
+| Ticket integrations & automatic claim | [`docs/TICKET_INTEGRATIONS.md`](docs/TICKET_INTEGRATIONS.md) |
+| Production deployment (Ubuntu VPS, Pterodactyl, reverse proxy) | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) |
+| Backup & recovery | [`docs/BACKUP_AND_RECOVERY.md`](docs/BACKUP_AND_RECOVERY.md) |
+| Troubleshooting | [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) |
 
-### Useful CLI Scripts
+---
+
+## Verification
+
 ```bash
-npm test                  # Run full Vitest integration suite against real temporary SQLite files
-npm run typecheck         # Strict TypeScript compiler check (tsc --noEmit)
-npm run build             # Production build to dist/ + copy SQL migrations
-npm run migrate           # Apply pending SQLite schema migrations
-npm run backup            # Create & integrity-verify an atomic SQLite snapshot
-npm run restore -- <file> # Safely restore SQLite DB (saves automatic pre-restore snapshot first)
-npm run upload:emojis     # Upload custom emojis to Discord REST v10 & sync emoji-manifest.json
+npm run typecheck   # tsc --noEmit
+npm test            # command count, authorization, roster, tickets, website session/CSRF tests
+npm run build       # compiles and copies public assets into dist/public
+```
+
+The test suite asserts exactly 100 operations across 18 roots. Website HTTP tests start a real server against a temporary SQLite database and verify unauthenticated rejection, CSRF enforcement, global-data denial, guild isolation and immediate session revocation.
+
+> **Not exercised live in this environment:** Discord OAuth2 token exchange, a real Discord gateway connection, and real guild/member API calls require your credentials. Configure them and test `/server setup`, `/staff add` and dashboard sign-in in your own server. Unit/integration tests use a real temporary SQLite database and a stubbed Discord delivery adapter.
+
+---
+
+## CLI
+
+```bash
+npm run setup             # safe installer
+npm run migrate           # apply migrations
+npm run build             # production build + dashboard assets
+npm start                 # bot + dashboard
+npm run deploy:commands   # register the 18 roots / 100 operations
+npm run backup            # verified SQLite snapshot
+npm run restore -- <file> # restore with a pre-restore backup
+npm test                  # Vitest suite
 ```
 
 ---

@@ -76,6 +76,8 @@ export function bindGatewayEvents(client: Client, container: PlatformContainer):
     }
 
     container.scheduler.start(container.config.schedulerTickSeconds);
+    container.autoClaim.recoverPendingTimers();
+    container.autoClaim.start(30_000);
   });
 
   client.on(Events.GuildCreate, async (guild) => {
@@ -257,20 +259,43 @@ export function bindGatewayEvents(client: Client, container: PlatformContainer):
         }).ticket;
       }
 
-      if (ticket && container.roster.isActiveStaffMember(message.guild.id, message.author.id)) {
-        container.tickets.recordTicketStaffMessage({
+      if (ticket) {
+        const authorIsStaff = container.roster.isActiveStaffMember(message.guild.id, message.author.id);
+        container.tickets.captureTicketMessage({
           guildId: message.guild.id,
           ticketId: ticket.ticket_id,
-          staffUserId: message.author.id,
-          channelId: message.channelId,
           messageId: message.id,
+          authorUserId: message.author.id,
+          authorName: message.member?.displayName ?? message.author.username,
           content: message.content,
           contentAvailable: container.config.enableMessageContentIntent,
           attachmentCount: message.attachments.size,
+          attachments: message.attachments.map((a) => ({
+            name: a.name,
+            contentType: a.contentType,
+            size: a.size,
+          })),
+          embedCount: message.embeds.length,
+          sentAt: message.createdAt.toISOString(),
           isBot: message.author.bot,
-          isWebhook: Boolean(message.webhookId),
-          occurredAt: message.createdAt.toISOString(),
         });
+
+        if (authorIsStaff) {
+          container.tickets.recordTicketStaffMessage({
+            guildId: message.guild.id,
+            ticketId: ticket.ticket_id,
+            staffUserId: message.author.id,
+            channelId: message.channelId,
+            messageId: message.id,
+            content: message.content,
+            contentAvailable: container.config.enableMessageContentIntent,
+            attachmentCount: message.attachments.size,
+            isBot: message.author.bot,
+            isWebhook: Boolean(message.webhookId),
+            occurredAt: message.createdAt.toISOString(),
+          });
+          return;
+        }
         return;
       }
     }
@@ -289,6 +314,30 @@ export function bindGatewayEvents(client: Client, container: PlatformContainer):
       isWebhook: Boolean(message.webhookId),
       isTicketChannel: false,
       occurredAt: message.createdAt.toISOString(),
+    });
+  });
+
+  client.on(Events.MessageUpdate, (oldMessage, newMessage) => {
+    const guildId = newMessage.guildId ?? oldMessage.guildId;
+    if (!guildId) return;
+    const content = 'content' in newMessage ? (newMessage.content ?? '') : '';
+    container.tickets.updateTicketMessage({
+      guildId,
+      messageId: newMessage.id,
+      content,
+      contentAvailable: container.config.enableMessageContentIntent,
+      sentAt: new Date().toISOString(),
+    });
+  });
+
+  client.on(Events.MessageDelete, (message) => {
+    const guildId = message.guildId;
+    if (!guildId) return;
+    container.tickets.updateTicketMessage({
+      guildId,
+      messageId: message.id,
+      deleted: true,
+      sentAt: new Date().toISOString(),
     });
   });
 

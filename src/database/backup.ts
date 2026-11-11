@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
+import { openRawSqliteDriver } from './sqliteDriver';
 import { SqliteDatabase } from './connection';
 import { logger } from '../utils/logger';
 
@@ -32,7 +32,7 @@ export class DatabaseBackupService {
 
     await this.db.raw.backup(fullPath);
 
-    const verifyDb = new Database(fullPath, { readonly: true });
+    const verifyDb = openRawSqliteDriver(fullPath, { readonly: true });
     let integrityOk = false;
     try {
       const check = verifyDb.pragma('integrity_check') as Array<{ integrity_check: string }>;
@@ -66,12 +66,24 @@ export class DatabaseBackupService {
       .map((filename) => {
         const fullPath = path.join(this.backupDir, filename);
         const stat = fs.statSync(fullPath);
+        let integrityOk = false;
+        try {
+          const verifyDb = openRawSqliteDriver(fullPath, { readonly: true });
+          try {
+            const check = verifyDb.pragma('integrity_check') as Array<{ integrity_check: string }>;
+            integrityOk = check.length === 1 && check[0].integrity_check === 'ok';
+          } finally {
+            verifyDb.close();
+          }
+        } catch (err) {
+          logger.warn({ err, filename }, 'Backup integrity verification failed');
+        }
         return {
           filename,
           fullPath,
           sizeBytes: stat.size,
           createdAt: stat.mtime.toISOString(),
-          integrityOk: true,
+          integrityOk,
         };
       })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -92,7 +104,7 @@ export class DatabaseBackupService {
       throw new Error(`Backup file not found: ${resolvedBackup}`);
     }
 
-    const checkDb = new Database(resolvedBackup, { readonly: true });
+    const checkDb = openRawSqliteDriver(resolvedBackup, { readonly: true });
     try {
       const check = checkDb.pragma('integrity_check') as Array<{ integrity_check: string }>;
       if (check.length !== 1 || check[0].integrity_check !== 'ok') {

@@ -5,6 +5,7 @@ import { FeatureService } from './FeatureService';
 import { GuildConfigService } from './GuildConfigService';
 import { GuildMemberSnapshot } from './RosterService';
 import { GuildScanReport, ScannerService } from './ScannerService';
+import { SystemSettingsService } from './SystemSettingsService';
 
 export interface LiveGuildScanContext {
   liveMembers?: readonly GuildMemberSnapshot[];
@@ -19,6 +20,7 @@ export class SchedulerService {
   private readonly guildConfig: GuildConfigService;
   private readonly features: FeatureService;
   private readonly scanner: ScannerService;
+  private readonly settings: SystemSettingsService | null;
   private timer: NodeJS.Timeout | null = null;
   private contextProvider: LiveGuildContextProvider | null = null;
   private isTickRunning = false;
@@ -28,11 +30,13 @@ export class SchedulerService {
     guildConfig: GuildConfigService,
     features: FeatureService,
     scanner: ScannerService,
+    settings: SystemSettingsService | null = null,
   ) {
     this.db = db;
     this.guildConfig = guildConfig;
     this.features = features;
     this.scanner = scanner;
+    this.settings = settings;
   }
 
   public setLiveContextProvider(provider: LiveGuildContextProvider): void {
@@ -72,6 +76,10 @@ export class SchedulerService {
    */
   public async runDueTasks(nowIso = new Date().toISOString()): Promise<GuildScanReport[]> {
     if (this.isTickRunning) {
+      return [];
+    }
+    if (this.settings?.getBoolean('monitoring_paused_globally')) {
+      logger.warn('Scheduled scans skipped: global monitoring pause is active');
       return [];
     }
     this.isTickRunning = true;

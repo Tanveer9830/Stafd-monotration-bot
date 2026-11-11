@@ -6,6 +6,7 @@ import { BRANDING, GLOBAL_OWNER_ID } from '../src/config/branding';
 import { SqliteDatabase } from '../src/database/connection';
 import { MigrationRunner } from '../src/database/migrator';
 import { generateAllVisualAssets } from '../src/services/AssetGeneratorService';
+import dotenv from 'dotenv';
 
 async function runInstaller(): Promise<void> {
   console.log('==================================================================');
@@ -20,6 +21,12 @@ async function runInstaller(): Promise<void> {
   if (fs.existsSync(envPath)) {
     console.log(`[SAFEGUARD] Existing ".env" detected at ${envPath}.`);
     console.log('[SAFEGUARD] Refusing to overwrite existing ".env" configuration.\n');
+    const existing = dotenv.parse(fs.readFileSync(envPath));
+    if (existing.DATABASE_PATH) dbRelativePath = existing.DATABASE_PATH;
+    if (!existing.DISCORD_CLIENT_SECRET) {
+      console.log('[WEBSITE] DISCORD_CLIENT_SECRET is missing, so dashboard sign-in stays disabled.');
+      console.log('[WEBSITE] Add DISCORD_CLIENT_SECRET and OAUTH2_REDIRECT_URI to ".env" to enable the dashboard.\n');
+    }
   } else {
     if (!input.isTTY) {
       throw new Error(
@@ -54,6 +61,12 @@ async function runInstaller(): Promise<void> {
         dbRelativePath = customDb;
       }
 
+      const webBaseUrl = (
+        await rl.question('6. Dashboard public URL [http://localhost:3000]: ')
+      ).trim() || 'http://localhost:3000';
+      const clientSecret = (
+        await rl.question('7. Optional Discord OAuth2 Client Secret for the dashboard (press Enter to skip): ')
+      ).trim();
       if (!token || !clientId) {
         throw new Error('DISCORD_TOKEN and DISCORD_CLIENT_ID are required to generate ".env".');
       }
@@ -73,6 +86,14 @@ async function runInstaller(): Promise<void> {
         `DEFAULT_SCAN_INTERVAL_MINUTES=360`,
         `SCHEDULER_TICK_SECONDS=60`,
         `AUTO_REGISTER_COMMANDS_ON_STARTUP=true`,
+        `WEB_ENABLED=true`,
+        `WEB_HOST=0.0.0.0`,
+        `WEB_PORT=3000`,
+        `WEB_BASE_URL=${webBaseUrl.replace(/\/$/, '')}`,
+        `OAUTH2_REDIRECT_URI=${webBaseUrl.replace(/\/$/, '')}/auth/callback`,
+        `DISCORD_CLIENT_SECRET=${clientSecret}`,
+        `COOKIE_SECURE=auto`,
+        `WEB_TRUST_PROXY=false`,
         `NODE_ENV=production`,
         `LOG_LEVEL=info`,
         '',
@@ -106,6 +127,10 @@ async function runInstaller(): Promise<void> {
     `[OK] Verified ${assets.bannersGenerated.length} banner assets and ${assets.emojisGenerated.length} custom emoji assets.`,
   );
   console.log('\nSetup complete! Run `npm run build && npm start` to launch TANVEER STAFF MONITOR.');
+  if (!fs.existsSync(envPath) || !dotenv.parse(fs.readFileSync(envPath)).DISCORD_CLIENT_SECRET) {
+    console.log('Dashboard sign-in remains disabled until DISCORD_CLIENT_SECRET is set in ".env".');
+    console.log('Discord Developer Portal → OAuth2 → Redirects must include your /auth/callback URL.');
+  }
 }
 
 void runInstaller().catch((err) => {

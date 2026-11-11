@@ -3,6 +3,9 @@ import { BRANDING } from './config/branding';
 import { loadAppConfig } from './config/env';
 import { createPlatformContainer } from './container';
 import { bindGatewayEvents } from './events/gatewayEvents';
+import { registerDiscordSlashCommands } from './commands/registry';
+import { DiscordOAuthClient } from './web/DiscordOAuthClient';
+import { StartedWebServer, startWebServer } from './web/WebServer';
 import { logger } from './utils/logger';
 
 export function buildGatewayIntents(config: ReturnType<typeof loadAppConfig>): GatewayIntentBits[] {
@@ -43,6 +46,7 @@ export async function startPlatform(): Promise<void> {
 
   bindGatewayEvents(client, container);
 
+  let web: StartedWebServer | null = null;
   let shuttingDown = false;
   const gracefulShutdown = async (signal: string) => {
     if (shuttingDown) return;
@@ -50,6 +54,7 @@ export async function startPlatform(): Promise<void> {
     logger.info({ signal }, `Gracefully shutting down ${BRANDING.projectName}...`);
     try {
       container.scheduler.stop();
+      if (web) await web.close();
       await client.destroy();
       container.shutdown();
     } catch (err) {
@@ -76,6 +81,45 @@ export async function startPlatform(): Promise<void> {
   );
 
   await client.login(config.discordToken);
+
+  if (config.autoRegisterCommandsOnStartup) {
+    try {
+      const registered = await registerDiscordSlashCommands({
+        token: config.discordToken,
+        clientId: config.discordClientId,
+        devGuildId: config.discordDevGuildId,
+      });
+      logger.info(registered, 'Discord slash commands registered');
+    } catch (err) {
+      logger.error({ err }, 'Slash command registration failed; the dashboard and existing commands remain available');
+    }
+  }
+
+  if (config.webEnabled) {
+    const oauth = new DiscordOAuthClient(container.db, {
+      clientId: config.discordClientId,
+      clientSecret: config.discordClientSecret,
+      redirectUri: config.oauth2RedirectUri,
+    });
+    if (!oauth.isConfigured) {
+      logger.warn(
+        'Website OAuth2 is not configured. The dashboard will start but sign-in stays disabled until DISCORD_CLIENT_SECRET and OAUTH2_REDIRECT_URI are set.',
+      );
+    }
+    try {
+      web = await startWebServer({
+        container,
+        discordClient: client,
+        oauth,
+        host: config.webHost,
+        port: config.webPort,
+        baseUrl: config.webBaseUrl,
+      });
+      logger.info({ host: web.host, port: web.port, baseUrl: web.url }, 'Website dashboard listening');
+    } catch (err) {
+      logger.error({ err }, 'Website dashboard failed to start; the Discord bot is still running');
+    }
+  }
 }
 
 if (require.main === module) {

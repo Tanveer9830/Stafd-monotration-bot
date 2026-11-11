@@ -36,6 +36,22 @@ const EnvSchema = z.object({
     .optional()
     .default('true')
     .transform((v) => v.toLowerCase() !== 'false'),
+  WEB_ENABLED: z
+    .string()
+    .optional()
+    .default('true')
+    .transform((v) => v.toLowerCase() !== 'false'),
+  WEB_HOST: z.string().optional().default('0.0.0.0'),
+  WEB_PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  WEB_BASE_URL: z.string().optional().default(''),
+  DISCORD_CLIENT_SECRET: z.string().optional().default(''),
+  OAUTH2_REDIRECT_URI: z.string().optional().default(''),
+  COOKIE_SECURE: z.string().optional().default('auto'),
+  WEB_TRUST_PROXY: z
+    .string()
+    .optional()
+    .default('false')
+    .transform((v) => v.toLowerCase() === 'true'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
   LOG_LEVEL: z.string().default('info'),
 });
@@ -54,6 +70,14 @@ export interface AppConfig {
   readonly defaultScanIntervalMinutes: number;
   readonly schedulerTickSeconds: number;
   readonly autoRegisterCommandsOnStartup: boolean;
+  readonly webEnabled: boolean;
+  readonly webHost: string;
+  readonly webPort: number;
+  readonly webBaseUrl: string;
+  readonly discordClientSecret: string;
+  readonly oauth2RedirectUri: string;
+  readonly cookieSecure: 'auto' | 'true' | 'false';
+  readonly webTrustProxy: boolean;
   readonly nodeEnv: 'development' | 'production' | 'test';
   readonly logLevel: string;
 }
@@ -93,6 +117,16 @@ export function loadAppConfig(overrides: Record<string, string | undefined> = {}
     defaultScanIntervalMinutes: parsed.DEFAULT_SCAN_INTERVAL_MINUTES,
     schedulerTickSeconds: parsed.SCHEDULER_TICK_SECONDS,
     autoRegisterCommandsOnStartup: parsed.AUTO_REGISTER_COMMANDS_ON_STARTUP,
+    webEnabled: parsed.WEB_ENABLED,
+    webHost: parsed.WEB_HOST,
+    webPort: parsed.WEB_PORT,
+    webBaseUrl: parsed.WEB_BASE_URL || `http://localhost:${parsed.WEB_PORT}`,
+    discordClientSecret: parsed.DISCORD_CLIENT_SECRET,
+    oauth2RedirectUri:
+      parsed.OAUTH2_REDIRECT_URI || `${parsed.WEB_BASE_URL || `http://localhost:${parsed.WEB_PORT}`}/auth/callback`,
+    cookieSecure:
+      parsed.COOKIE_SECURE === 'true' ? 'true' : parsed.COOKIE_SECURE === 'false' ? 'false' : 'auto',
+    webTrustProxy: parsed.WEB_TRUST_PROXY,
     nodeEnv: parsed.NODE_ENV,
     logLevel: parsed.LOG_LEVEL,
   });

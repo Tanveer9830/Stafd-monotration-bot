@@ -297,6 +297,11 @@ export interface TicketRecord {
   guild_id: string;
   channel_id: string;
   channel_name: string;
+  ticket_number: string | null;
+  claim_type: 'MANUAL' | 'AUTOMATIC' | 'NONE' | null;
+  claim_at: string | null;
+  last_activity_at: string | null;
+  last_responder_user_id: string | null;
   parent_category_id: string | null;
   is_thread: number;
   external_ticket_ref: string | null;

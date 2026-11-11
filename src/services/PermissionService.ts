@@ -370,10 +370,31 @@ export class PermissionService {
       (a) => a.permission_level === 'MANAGEMENT_REVIEWER' || a.can_approve_warnings === 1,
     );
 
-    const assignedConfigure = matchingAssignments.some((a) => a.can_configure_bot === 1);
-    const assignedApprove = matchingAssignments.some((a) => a.can_approve_warnings === 1);
-    const assignedLeave = matchingAssignments.some((a) => a.can_manage_leave === 1);
-    const assignedReports = matchingAssignments.some((a) => a.can_view_reports === 1);
+    // Website Access & Roles assignments are honored by the review/warning engines too.
+    const webRows = this.db.all<{ role: string; permissions_json: string }>(
+      `SELECT role, permissions_json FROM web_role_assignments
+       WHERE user_id = ? AND guild_id = ? AND status = 'ACTIVE'
+         AND (expires_at IS NULL OR expires_at > ?)`,
+      [ctx.userId, ctx.guildId, new Date().toISOString()],
+    );
+    let webScopes: string[] = [];
+    for (const row of webRows) {
+      try {
+        webScopes = webScopes.concat(JSON.parse(row.permissions_json) as string[]);
+      } catch {
+        // ignore malformed stored scopes
+      }
+    }
+    const webApprove = webScopes.includes('SERVER_MANAGE_REVIEWS') || webScopes.includes('SERVER_MANAGE_WARNINGS');
+    const webLeave = webScopes.includes('SERVER_MANAGE_LEAVE');
+    const webReports = webScopes.includes('SERVER_VIEW_ANALYTICS') || webScopes.includes('SERVER_VIEW_OVERVIEW');
+    const webConfigure = webScopes.includes('SERVER_MANAGE_SETTINGS');
+    const isWebCoOwner = webRows.some((r) => r.role === 'SERVER_CO_OWNER');
+
+    const assignedConfigure = matchingAssignments.some((a) => a.can_configure_bot === 1) || webConfigure;
+    const assignedApprove = matchingAssignments.some((a) => a.can_approve_warnings === 1) || webApprove;
+    const assignedLeave = matchingAssignments.some((a) => a.can_manage_leave === 1) || webLeave;
+    const assignedReports = matchingAssignments.some((a) => a.can_view_reports === 1) || webReports;
 
     const botAdminCanInspect = Boolean(botAdmin?.scopes.includes('INSPECT_DIAGNOSTICS'));
     const botAdminCanReview = Boolean(botAdmin?.scopes.includes('REVIEW_CASES'));
@@ -382,7 +403,7 @@ export class PermissionService {
       isGlobalOwner: globalOwner,
       isBotAdmin: Boolean(botAdmin),
       isServerOwner,
-      isCoOwner,
+      isCoOwner: isCoOwner || isWebCoOwner,
       isManagementReviewer,
       canAccessGlobalPanel: globalOwner,
       canManageBotAdmins: globalOwner,

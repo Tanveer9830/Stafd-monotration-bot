@@ -3,6 +3,11 @@ import { DatabaseBackupService } from './database/backup';
 import { SqliteDatabase } from './database/connection';
 import { MigrationRunner } from './database/migrator';
 import { ActivityClassifierService } from './services/ActivityClassifierService';
+import { AuthzService } from './services/AuthzService';
+import { AutoClaimService } from './services/AutoClaimService';
+import { PlatformEventBus } from './services/PlatformEventBus';
+import { SystemSettingsService } from './services/SystemSettingsService';
+import { WebRoleService } from './services/WebRoleService';
 import { AnalyticsService } from './services/AnalyticsService';
 import { AuditService } from './services/AuditService';
 import { FeatureService } from './services/FeatureService';
@@ -15,6 +20,8 @@ import { ReportExportService } from './services/ReportExportService';
 import { ReviewService } from './services/ReviewService';
 import { RosterService } from './services/RosterService';
 import { ScannerService } from './services/ScannerService';
+import { StaffDiscoveryService } from './services/StaffDiscoveryService';
+import { StaffDiscoverySessionService } from './services/StaffDiscoverySessionService';
 import { SchedulerService } from './services/SchedulerService';
 import { TicketService } from './services/TicketService';
 import { WarningService } from './services/WarningService';
@@ -37,9 +44,16 @@ export interface PlatformContainer {
   readonly warnings: WarningService;
   readonly reviews: ReviewService;
   readonly scanner: ScannerService;
+  readonly staffDiscovery: StaffDiscoveryService;
+  readonly discoverySessions: StaffDiscoverySessionService;
   readonly scheduler: SchedulerService;
   readonly analytics: AnalyticsService;
   readonly reportExporter: ReportExportService;
+  readonly webRoles: WebRoleService;
+  readonly authz: AuthzService;
+  readonly settings: SystemSettingsService;
+  readonly eventBus: PlatformEventBus;
+  readonly autoClaim: AutoClaimService;
   shutdown(): void;
 }
 
@@ -77,6 +91,8 @@ export function createPlatformContainer(
     classifier,
     audit,
   );
+  const staffDiscovery = new StaffDiscoveryService(db, guildConfig, roster, audit);
+  const discoverySessions = new StaffDiscoverySessionService();
   const scanner = new ScannerService(
     db,
     guildConfig,
@@ -88,9 +104,23 @@ export function createPlatformContainer(
     reviews,
     audit,
   );
-  const scheduler = new SchedulerService(db, guildConfig, features, scanner);
+  const settings = new SystemSettingsService(db, audit);
+  const scheduler = new SchedulerService(db, guildConfig, features, scanner, settings);
   const analytics = new AnalyticsService(db, guildConfig, features, roster, tickets);
   const reportExporter = new ReportExportService(features);
+  const eventBus = new PlatformEventBus();
+  const webRoles = new WebRoleService(db, guildConfig, audit);
+  const authz = new AuthzService(db, guildConfig, webRoles, audit);
+  const autoClaim = new AutoClaimService(db, tickets, roster, audit, settings, eventBus);
+  tickets.setEventListener((event) => {
+    eventBus.publish({
+      type: event.type,
+      guildId: event.guildId,
+      ticketId: event.ticketId,
+      at: event.at,
+      data: event.data,
+    });
+  });
 
   return {
     config,
@@ -110,11 +140,19 @@ export function createPlatformContainer(
     warnings,
     reviews,
     scanner,
+    staffDiscovery,
+    discoverySessions,
     scheduler,
     analytics,
     reportExporter,
+    webRoles,
+    authz,
+    settings,
+    eventBus,
+    autoClaim,
     shutdown(): void {
       scheduler.stop();
+      autoClaim.stop();
       db.close();
     },
   };
