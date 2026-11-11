@@ -1,0 +1,48 @@
+{
+  "name": "tanveer-staff-monitor",
+  "version": "1.0.0",
+  "description": "TANVEER STAFF MONITOR — Complete Multi-Server Discord Staff Activity Monitoring and Management Platform (Made by Tanveer | Discord: tanveer5637)",
+  "author": "Tanveer (Discord: tanveer5637)",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && tsx scripts/copy-migrations.ts",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "setup": "tsx scripts/install.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "deploy:commands": "tsx scripts/register-commands.ts",
+    "generate:assets": "tsx scripts/generate-assets.ts",
+    "upload:emojis": "tsx scripts/upload-application-emojis.ts",
+    "backup": "tsx scripts/backup-db.ts",
+    "restore": "tsx scripts/restore-db.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "better-sqlite3": "^11.8.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "gifenc": "^1.0.3",
+    "pdfkit": "^0.16.0",
+    "pino": "^9.6.0",
+    "pngjs": "^7.0.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.4",
+    "@types/pdfkit": "^0.13.5",
+    "@types/pngjs": "^6.0.5",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  }
+}

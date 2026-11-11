@@ -1,0 +1,27 @@
+[Unit]
+Description=TANVEER STAFF MONITOR — Multi-Server Discord Staff Activity & Management Platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tanveerbot
+Group=tanveerbot
+WorkingDirectory=/opt/tanveer-staff-monitor
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/tanveer-staff-monitor/.env
+ExecStart=/usr/bin/node /opt/tanveer-staff-monitor/dist/index.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+# Security Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tanveer-staff-monitor/data /opt/tanveer-staff-monitor/logs
+
+[Install]
+WantedBy=multi-user.target
